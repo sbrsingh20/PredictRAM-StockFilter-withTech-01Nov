@@ -52,11 +52,30 @@ def fetch_indicators(stock):
 
     beta = ticker.info.get('beta', None)
 
-    # Placeholder values for pattern, strength, and percentages
-    pattern = "N/A"  # Replace with actual logic to identify patterns
-    strength_percentage = 0  # Replace with actual calculation
-    bullish_percentage = 0  # Replace with actual calculation
-    bearish_percentage = 0  # Replace with actual calculation
+    # Calculate additional metrics
+    # Example logic for Pattern (Bullish or Bearish)
+    last_close = data['Close'].iloc[-1]
+    previous_close = data['Close'].iloc[-2]
+    if last_close > previous_close:
+        pattern = "Bullish"
+    elif last_close < previous_close:
+        pattern = "Bearish"
+    else:
+        pattern = "Neutral"
+
+    # Strength Percentage: % change from SMA_50
+    if data['SMA_50'].iloc[-1] is not None:
+        strength_percentage = ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1]) * 100
+    else:
+        strength_percentage = 0
+
+    # Bullish and Bearish Percentage
+    recent_changes = data['Close'].pct_change().iloc[-20:]  # last 20 days
+    bullish_days = (recent_changes > 0).sum()
+    bearish_days = (recent_changes < 0).sum()
+    total_days = bullish_days + bearish_days
+    bullish_percentage = (bullish_days / total_days * 100) if total_days > 0 else 0
+    bearish_percentage = (bearish_days / total_days * 100) if total_days > 0 else 0
 
     try:
         return {

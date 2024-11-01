@@ -19,7 +19,18 @@ def fetch_indicators(stock):
             'Lower_BB': None,
             'Volatility': None,
             'Beta': None,
-            'Close': None
+            'Close': None,
+            'Volume': None,
+            'SMA_50': None,
+            'SMA_200': None,
+            'EMA_12': None,
+            'EMA_26': None,
+            'Average_Volume': None,
+            'Average_Volume_10d': None,
+            'Pattern': None,
+            'Strength_Percentage': None,
+            'Bullish_Percentage': None,
+            'Bearish_Percentage': None
         }
 
     # Calculate indicators
@@ -32,7 +43,20 @@ def fetch_indicators(stock):
     data['Upper_BB'] = bb.bollinger_hband()
     data['Lower_BB'] = bb.bollinger_lband()
     data['Volatility'] = data['Close'].pct_change().rolling(window=21).std() * 100
+    data['SMA_50'] = data['Close'].rolling(window=50).mean()
+    data['SMA_200'] = data['Close'].rolling(window=200).mean()
+    data['EMA_12'] = ta.trend.EMAIndicator(data['Close'], window=12).ema_indicator()
+    data['EMA_26'] = ta.trend.EMAIndicator(data['Close'], window=26).ema_indicator()
+    data['Average_Volume'] = data['Volume'].mean()
+    data['Average_Volume_10d'] = data['Volume'].rolling(window=10).mean()
+
     beta = ticker.info.get('beta', None)
+
+    # Placeholder values for pattern, strength, and percentages
+    pattern = "N/A"  # Replace with actual logic to identify patterns
+    strength_percentage = 0  # Replace with actual calculation
+    bullish_percentage = 0  # Replace with actual calculation
+    bearish_percentage = 0  # Replace with actual calculation
 
     try:
         return {
@@ -44,7 +68,18 @@ def fetch_indicators(stock):
             'Lower_BB': data['Lower_BB'].iloc[-1],
             'Volatility': data['Volatility'].iloc[-1],
             'Beta': beta,
-            'Close': data['Close'].iloc[-1]
+            'Close': data['Close'].iloc[-1],
+            'Volume': data['Volume'].iloc[-1],
+            'SMA_50': data['SMA_50'].iloc[-1],
+            'SMA_200': data['SMA_200'].iloc[-1],
+            'EMA_12': data['EMA_12'].iloc[-1],
+            'EMA_26': data['EMA_26'].iloc[-1],
+            'Average_Volume': data['Average_Volume'].iloc[-1],
+            'Average_Volume_10d': data['Average_Volume_10d'].iloc[-1],
+            'Pattern': pattern,
+            'Strength_Percentage': strength_percentage,
+            'Bullish_Percentage': bullish_percentage,
+            'Bearish_Percentage': bearish_percentage
         }
     except IndexError:
         return {
@@ -56,7 +91,18 @@ def fetch_indicators(stock):
             'Lower_BB': None,
             'Volatility': None,
             'Beta': None,
-            'Close': None
+            'Close': None,
+            'Volume': None,
+            'SMA_50': None,
+            'SMA_200': None,
+            'EMA_12': None,
+            'EMA_26': None,
+            'Average_Volume': None,
+            'Average_Volume_10d': None,
+            'Pattern': None,
+            'Strength_Percentage': None,
+            'Bullish_Percentage': None,
+            'Bearish_Percentage': None
         }
 
 # Function to score stocks based on indicators for different terms
@@ -134,7 +180,18 @@ def generate_recommendations(indicators_list):
                     'Upper_BB': indicators['Upper_BB'],
                     'Lower_BB': indicators['Lower_BB'],
                     'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta']
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
                 })
 
             if medium_score > 0:
@@ -152,7 +209,18 @@ def generate_recommendations(indicators_list):
                     'Upper_BB': indicators['Upper_BB'],
                     'Lower_BB': indicators['Lower_BB'],
                     'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta']
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
                 })
 
             if long_score > 0:
@@ -170,7 +238,18 @@ def generate_recommendations(indicators_list):
                     'Upper_BB': indicators['Upper_BB'],
                     'Lower_BB': indicators['Lower_BB'],
                     'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta']
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
                 })
 
     return recommendations
@@ -179,13 +258,14 @@ def generate_recommendations(indicators_list):
 st.image("png_2.3-removebg.png", width=400)  # Replace "your_logo.png" with the path to your logo
 st.title("PredictRAM - Stock Analysis and Call Generator")
 
-# File upload
-uploaded_file = st.file_uploader("Upload stocks.xlsx", type=["xlsx"])
+# File upload option
+uploaded_file = st.file_uploader("Upload stocks.xlsx file", type=["xlsx"])
 
 if uploaded_file is not None:
-    # Read stock symbols from uploaded file
+    # Read stock symbols from the uploaded file
     stocks_df = pd.read_excel(uploaded_file)
-    
+
+    # Check if the required column exists
     if 'Stock Symbol' in stocks_df.columns:
         stocks = stocks_df['Stock Symbol'].tolist()
 

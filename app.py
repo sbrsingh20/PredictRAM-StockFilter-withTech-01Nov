@@ -71,10 +71,18 @@ def fetch_indicators(stock):
 
 
 # Function to detect chart patterns
-def detect_chart_pattern(data):
-    # For simplicity, here we will include just a few patterns
-    # More sophisticated detection logic should be implemented for production
+import streamlit as st
+import pandas as pd
+import yfinance as yf
+import ta
 
+# Function to fetch stock indicators
+def fetch_indicators(stock):
+    # (your existing fetch_indicators code here, with the updates made previously)
+    # ...
+
+# Function to detect chart patterns
+def detect_chart_pattern(data):
     if len(data) < 30:  # We need at least 30 points to identify patterns
         return "No Pattern"
 
@@ -90,7 +98,24 @@ def detect_chart_pattern(data):
         return "Double Top"
     if is_double_bottom(recent_prices):
         return "Double Bottom"
-    # Add additional patterns as necessary...
+    if is_triple_top(recent_prices):
+        return "Triple Top"
+    if is_triple_bottom(recent_prices):
+        return "Triple Bottom"
+    if is_flag_or_pennant(recent_prices):
+        return "Flag or Pennant"
+    if is_cup_and_handle(recent_prices):
+        return "Cup and Handle"
+    if is_rounding_bottom(recent_prices):
+        return "Rounding Bottom"
+    if is_symmetrical_triangle(recent_prices):
+        return "Symmetrical Triangle"
+    if is_ascending_triangle(recent_prices):
+        return "Ascending Triangle"
+    if is_descending_triangle(recent_prices):
+        return "Descending Triangle"
+    if is_gap(recent_prices):
+        return "Gap Pattern"
 
     return "No Recognized Pattern"
 
@@ -100,16 +125,80 @@ def is_head_and_shoulders(prices):
     return False
 
 def is_inverse_head_and_shoulders(prices):
-    # Implement logic to identify Inverse Head and Shoulders pattern
     return False
 
 def is_double_top(prices):
-    # Implement logic to identify Double Top pattern
     return False
 
 def is_double_bottom(prices):
-    # Implement logic to identify Double Bottom pattern
     return False
+
+def is_triple_top(prices):
+    return False
+
+def is_triple_bottom(prices):
+    return False
+
+def is_flag_or_pennant(prices):
+    return False
+
+def is_cup_and_handle(prices):
+    return False
+
+def is_rounding_bottom(prices):
+    return False
+
+def is_symmetrical_triangle(prices):
+    return False
+
+def is_ascending_triangle(prices):
+    return False
+
+def is_descending_triangle(prices):
+    return False
+
+def is_gap(prices):
+    return False
+
+# (rest of your existing functions remain unchanged)
+
+# Main Streamlit application
+st.title('Stock Indicator Analysis')
+
+# Upload file
+uploaded_file = st.file_uploader("Upload a CSV or Excel file with stock symbols", type=["csv", "xlsx"])
+
+if uploaded_file is not None:
+    if uploaded_file.name.endswith('.csv'):
+        stock_df = pd.read_csv(uploaded_file)
+    else:
+        stock_df = pd.read_excel(uploaded_file)
+
+    stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
+    
+    # Fetch indicators for all stocks
+    indicators_list = {}
+    for stock in stock_symbols:
+        indicators = fetch_indicators(stock)
+        indicators_list[stock] = indicators
+
+    # Generate recommendations based on the fetched indicators
+    recommendations = generate_recommendations(indicators_list)
+
+    # Display recommendations as tables
+    for term, stocks in recommendations.items():
+        st.subheader(f"{term} Recommendations")
+        if stocks:
+            df = pd.DataFrame(stocks)
+            st.dataframe(df)
+            
+            # Add download button for Excel
+            excel_file = f"{term}_Recommendations.xlsx"
+            df.to_excel(excel_file, index=False)
+            st.download_button(label="Download as Excel", data=df.to_excel(index=False), file_name=excel_file, mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        else:
+            st.write("No recommendations available.")
+
 
 # Function to calculate bullish percentage
 def calculate_bullish_percentage(data):

@@ -346,21 +346,38 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-   # Display recommendations as tables
+ # Display recommendations as tables
 for term, stocks in recommendations.items():
     st.subheader(f"{term} Recommendations")
     if stocks:
         df = pd.DataFrame(stocks)
-        
+
+        # Round numerical columns to 2 decimals
+        numeric_cols = df.select_dtypes(include=['float64', 'int']).columns
+        df[numeric_cols] = df[numeric_cols].round(2)
+
         # Check for columns with mixed types or None values and handle them
         for col in df.columns:
             if df[col].isnull().any():
-                # You can fill NaN with a placeholder (e.g., 'N/A') or drop those rows
-                df[col] = df[col].fillna('N/A')  # or df.dropna(subset=[col], inplace=True)
+                df[col] = df[col].fillna('N/A')  # Fill NaN with 'N/A'
 
             # Optionally convert columns to string type to avoid type issues
             df[col] = df[col].astype(str)
 
         st.dataframe(df)
+
+        # Provide download option for the Excel file
+        excel_file = f"{term}_recommendations.xlsx"
+        with pd.ExcelWriter(excel_file) as writer:
+            df.to_excel(writer, index=False, sheet_name=term)
+
+        # Streamlit download button
+        with open(excel_file, 'rb') as f:
+            st.download_button(
+                label="Download Excel file",
+                data=f,
+                file_name=excel_file,
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
     else:
         st.write("No recommendations available.")

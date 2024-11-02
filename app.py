@@ -343,11 +343,22 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-    # Display recommendations as tables
-    for term, stocks in recommendations.items():
-        st.subheader(f"{term} Recommendations")
-        if stocks:
-            df = pd.DataFrame(stocks)
-            st.dataframe(df)
-        else:
-            st.write("No recommendations available.")
+   # Display recommendations as tables
+for term, stocks in recommendations.items():
+    st.subheader(f"{term} Recommendations")
+    if stocks:
+        df = pd.DataFrame(stocks)
+
+        # Check for NaN values
+        if df.isnull().values.any():
+            st.write("DataFrame contains NaN values:")
+            st.write(df[df.isnull().any(axis=1)])
+
+        # Print data types for debugging
+        st.write("DataFrame Data Types:")
+        st.write(df.dtypes)
+
+        # Display the DataFrame
+        st.dataframe(df)
+    else:
+        st.write("No recommendations available.")

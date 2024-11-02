@@ -68,19 +68,14 @@ def fetch_indicators(stock):
         'Bearish_Percentage': calculate_bearish_percentage(data)
     }
 
-
 # Function to detect chart patterns
 def detect_chart_pattern(data):
-    # For simplicity, here we will include just a few patterns
-    # More sophisticated detection logic should be implemented for production
-
     if len(data) < 30:  # We need at least 30 points to identify patterns
         return "No Pattern"
 
     # Detect simple patterns based on closing prices
     recent_prices = data['Close'].tail(30)
 
-    # Example pattern detection logic (This can be made much more complex)
     if is_head_and_shoulders(recent_prices):
         return "Head and Shoulders"
     if is_inverse_head_and_shoulders(recent_prices):
@@ -89,39 +84,77 @@ def detect_chart_pattern(data):
         return "Double Top"
     if is_double_bottom(recent_prices):
         return "Double Bottom"
-    # Add additional patterns as necessary...
+    if is_triple_top(recent_prices):
+        return "Triple Top"
+    if is_triple_bottom(recent_prices):
+        return "Triple Bottom"
+    if is_flag_or_pennant(recent_prices):
+        return "Flag or Pennant"
+    if is_cup_and_handle(recent_prices):
+        return "Cup and Handle"
+    if is_rounding_bottom(recent_prices):
+        return "Rounding Bottom"
+    if is_symmetrical_triangle(recent_prices):
+        return "Symmetrical Triangle"
+    if is_ascending_triangle(recent_prices):
+        return "Ascending Triangle"
+    if is_descending_triangle(recent_prices):
+        return "Descending Triangle"
+    if is_gap(recent_prices):
+        return "Gap Pattern"
 
     return "No Recognized Pattern"
 
 # Placeholder functions for various patterns
 def is_head_and_shoulders(prices):
-    # Implement logic to identify Head and Shoulders pattern
     return False
 
 def is_inverse_head_and_shoulders(prices):
-    # Implement logic to identify Inverse Head and Shoulders pattern
     return False
 
 def is_double_top(prices):
-    # Implement logic to identify Double Top pattern
     return False
 
 def is_double_bottom(prices):
-    # Implement logic to identify Double Bottom pattern
+    return False
+
+def is_triple_top(prices):
+    return False
+
+def is_triple_bottom(prices):
+    return False
+
+def is_flag_or_pennant(prices):
+    return False
+
+def is_cup_and_handle(prices):
+    return False
+
+def is_rounding_bottom(prices):
+    return False
+
+def is_symmetrical_triangle(prices):
+    return False
+
+def is_ascending_triangle(prices):
+    return False
+
+def is_descending_triangle(prices):
+    return False
+
+def is_gap(prices):
     return False
 
 # Function to calculate bullish percentage
 def calculate_bullish_percentage(data):
-    # Example logic to calculate bullish percentage
     bullish_count = sum(data['Close'].diff().dropna() > 0)
-    total_count = len(data) - 1  # Subtract 1 for the diff operation
+    total_count = len(data) - 1
     return (bullish_count / total_count * 100) if total_count > 0 else 0
 
 # Function to calculate bearish percentage
 def calculate_bearish_percentage(data):
-    # Example logic to calculate bearish percentage
     bearish_count = sum(data['Close'].diff().dropna() < 0)
-    total_count = len(data) - 1  # Subtract 1 for the diff operation
+    total_count = len(data) - 1
     return (bearish_count / total_count * 100) if total_count > 0 else 0
 
 # Function to score stocks based on indicators for different terms
@@ -131,31 +164,31 @@ def score_stock(indicators, term):
     if term == 'Short Term':
         if indicators['RSI'] is not None:
             if indicators['RSI'] < 30 or indicators['RSI'] > 70:
-                score += 2  # Good
+                score += 2
             if 30 <= indicators['RSI'] <= 40 or 60 <= indicators['RSI'] <= 70:
-                score += 1  # Neutral
+                score += 1
 
         if indicators['MACD'] is not None:
             if indicators['MACD'] > 0 and indicators['MACD'] > indicators['MACD_Signal']:
-                score += 2  # Good
+                score += 2
 
     elif term == 'Medium Term':
         if indicators['RSI'] is not None:
             if 40 <= indicators['RSI'] <= 60:
-                score += 2  # Good
+                score += 2
 
         if indicators['MACD'] is not None:
-            if abs(indicators['MACD']) < 0.01:  # Close to zero
-                score += 1  # Neutral
+            if abs(indicators['MACD']) < 0.01:
+                score += 1
 
     elif term == 'Long Term':
         if indicators['RSI'] is not None:
             if 40 <= indicators['RSI'] <= 60:
-                score += 2  # Good
+                score += 2
 
         if indicators['Beta'] is not None:
             if 0.9 <= indicators['Beta'] <= 1.1:
-                score += 2  # Good
+                score += 2
 
     return score
 
@@ -171,14 +204,14 @@ def generate_recommendations(indicators_list):
         current_price = indicators['Close']
         
         if current_price is not None:
-            lower_buy_range = current_price * 0.995  # 0.5% lower
-            upper_buy_range = current_price * 1.005  # 0.5% higher
-            short_stop_loss = current_price * (1 - 0.03)  # Max 3%
-            short_target = current_price * (1 + 0.05)  # Min 5%
-            medium_stop_loss = current_price * (1 - 0.04)  # Max 4%
-            medium_target = current_price * (1 + 0.10)  # Min 10%
-            long_stop_loss = current_price * (1 - 0.05)  # Max 5%
-            long_target = current_price * (1 + 0.15)  # Min 15%
+            lower_buy_range = current_price * 0.995
+            upper_buy_range = current_price * 1.005
+            short_stop_loss = current_price * (1 - 0.03)
+            short_target = current_price * (1 + 0.05)
+            medium_stop_loss = current_price * (1 - 0.04)
+            medium_target = current_price * (1 + 0.10)
+            long_stop_loss = current_price * (1 - 0.05)
+            long_target = current_price * (1 + 0.15)
 
             short_score = score_stock(indicators, 'Short Term')
             medium_score = score_stock(indicators, 'Medium Term')
@@ -186,94 +219,35 @@ def generate_recommendations(indicators_list):
 
             if short_score > 0:
                 recommendations['Short Term'].append({
-                    'Stock': stock.replace('.NS', ''),  # Remove .NS
+                    'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
                     'Lower Buy Range': lower_buy_range,
                     'Upper Buy Range': upper_buy_range,
-                    'Stop Loss': short_stop_loss,
-                    'Target Price': short_target,
+                    'Short Stop Loss': short_stop_loss,
+                    'Short Target': short_target,
                     'Score': short_score,
-                    'RSI': indicators['RSI'],
-                    'MACD': indicators['MACD'],
-                    'MACD_Signal': indicators['MACD_Signal'],
-                    'Upper_BB': indicators['Upper_BB'],
-                    'Lower_BB': indicators['Lower_BB'],
-                    'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta'],
-                    'Volume': indicators['Volume'],
-                    'SMA_50': indicators['SMA_50'],
-                    'SMA_200': indicators['SMA_200'],
-                    'EMA_12': indicators['EMA_12'],
-                    'EMA_26': indicators['EMA_26'],
-                    'Average_Volume': indicators['Average_Volume'],
-                    'Average_Volume_10d': indicators['Average_Volume_10d'],
-                    'Pattern': indicators['Pattern'],
-                    'Strength_Percentage': indicators['Strength_Percentage'],
-                    'Bullish_Percentage': indicators['Bullish_Percentage'],
-                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                    'Pattern': indicators['Pattern']
                 })
 
             if medium_score > 0:
                 recommendations['Medium Term'].append({
                     'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
-                    'Lower Buy Range': lower_buy_range,
-                    'Upper Buy Range': upper_buy_range,
-                    'Stop Loss': medium_stop_loss,
-                    'Target Price': medium_target,
+                    'Medium Stop Loss': medium_stop_loss,
+                    'Medium Target': medium_target,
                     'Score': medium_score,
-                    'RSI': indicators['RSI'],
-                    'MACD': indicators['MACD'],
-                    'MACD_Signal': indicators['MACD_Signal'],
-                    'Upper_BB': indicators['Upper_BB'],
-                    'Lower_BB': indicators['Lower_BB'],
-                    'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta'],
-                    'Volume': indicators['Volume'],
-                    'SMA_50': indicators['SMA_50'],
-                    'SMA_200': indicators['SMA_200'],
-                    'EMA_12': indicators['EMA_12'],
-                    'EMA_26': indicators['EMA_26'],
-                    'Average_Volume': indicators['Average_Volume'],
-                    'Average_Volume_10d': indicators['Average_Volume_10d'],
-                    'Pattern': indicators['Pattern'],
-                    'Strength_Percentage': indicators['Strength_Percentage'],
-                    'Bullish_Percentage': indicators['Bullish_Percentage'],
-                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                    'Pattern': indicators['Pattern']
                 })
 
             if long_score > 0:
                 recommendations['Long Term'].append({
                     'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
-                    'Lower Buy Range': lower_buy_range,
-                    'Upper Buy Range': upper_buy_range,
-                    'Stop Loss': long_stop_loss,
-                    'Target Price': long_target,
+                    'Long Stop Loss': long_stop_loss,
+                    'Long Target': long_target,
                     'Score': long_score,
-                    'RSI': indicators['RSI'],
-                    'MACD': indicators['MACD'],
-                    'MACD_Signal': indicators['MACD_Signal'],
-                    'Upper_BB': indicators['Upper_BB'],
-                    'Lower_BB': indicators['Lower_BB'],
-                    'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta'],
-                    'Volume': indicators['Volume'],
-                    'SMA_50': indicators['SMA_50'],
-                    'SMA_200': indicators['SMA_200'],
-                    'EMA_12': indicators['EMA_12'],
-                    'EMA_26': indicators['EMA_26'],
-                    'Average_Volume': indicators['Average_Volume'],
-                    'Average_Volume_10d': indicators['Average_Volume_10d'],
-                    'Pattern': indicators['Pattern'],
-                    'Strength_Percentage': indicators['Strength_Percentage'],
-                    'Bullish_Percentage': indicators['Bullish_Percentage'],
-                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                    'Pattern': indicators['Pattern']
                 })
-
-    # Limit the results to 40 stocks for each term
-    for term in recommendations:
-        recommendations[term] = recommendations[term][:40]
 
     return recommendations
 
@@ -306,5 +280,15 @@ if uploaded_file is not None:
         if stocks:
             df = pd.DataFrame(stocks)
             st.dataframe(df)
+            
+            # Add download button for Excel
+            excel_file = f"{term}_Recommendations.xlsx"
+            df.to_excel(excel_file, index=False)
+            st.download_button(
+                label="Download as Excel", 
+                data=df.to_excel(index=False), 
+                file_name=excel_file, 
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
         else:
             st.write("No recommendations available.")

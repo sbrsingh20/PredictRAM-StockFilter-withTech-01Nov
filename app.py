@@ -15,7 +15,8 @@ def fetch_indicators(stock, interval='1d'):
             'Close', 'Volume', 'SMA_50', 'SMA_200', 
             'EMA_12', 'EMA_26', 'Average_Volume', 
             'Average_Volume_10d', 'Pattern', 
-            'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
+            'Pattern_Interval', 'Strength_Percentage', 
+            'Bullish_Percentage', 'Bearish_Percentage'
         ]}
 
     # Calculate indicators
@@ -38,7 +39,7 @@ def fetch_indicators(stock, interval='1d'):
     beta = ticker.info.get('beta', None)
 
     last_close = data['Close'].iloc[-1]
-    pattern = detect_chart_pattern(data)
+    pattern, interval = detect_chart_pattern(data)
 
     return {
         'RSI': data['RSI'].iloc[-1],
@@ -58,6 +59,7 @@ def fetch_indicators(stock, interval='1d'):
         'Average_Volume': average_volume,
         'Average_Volume_10d': average_volume_10d,
         'Pattern': pattern,
+        'Pattern_Interval': interval,
         'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
         'Bullish_Percentage': calculate_bullish_percentage(data),
         'Bearish_Percentage': calculate_bearish_percentage(data)
@@ -66,58 +68,60 @@ def fetch_indicators(stock, interval='1d'):
 # Function to detect chart patterns
 def detect_chart_pattern(data):
     if len(data) < 30:  # Need at least 30 points to identify patterns
-        return "No Pattern"
+        return "No Pattern", None
 
     recent_prices = data['Close'].tail(30).values
+    intervals = []
 
     patterns = {
-        "Head and Shoulders": is_head_and_shoulders(recent_prices),
-        "Double Top": is_double_top(recent_prices),
-        "Double Bottom": is_double_bottom(recent_prices),
+        "Head and Shoulders": is_head_and_shoulders(recent_prices, data.index[-30:]),
+        "Double Top": is_double_top(recent_prices, data.index[-30:]),
+        "Double Bottom": is_double_bottom(recent_prices, data.index[-30:]),
     }
     
-    recognized_patterns = [name for name, detected in patterns.items() if detected]
+    recognized_patterns = {name: interval for name, (detected, interval) in patterns.items() if detected}
     
-    return recognized_patterns if recognized_patterns else ["No Recognized Pattern"]
+    return list(recognized_patterns.keys()) if recognized_patterns else ["No Recognized Pattern"], list(recognized_patterns.values())
 
 # Head and Shoulders detection
-def is_head_and_shoulders(prices):
-    # Implement a simple logic for head and shoulders detection
+def is_head_and_shoulders(prices, time_index):
     if len(prices) < 20:
-        return False
-    # Check for price peaks and troughs
+        return False, None
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
-    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
-    
+    valley_indices = [i for i, v in enumerate((prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:]), 1) if v]
     peak_indices = [i for i, p in enumerate(peaks, 1) if p]
-    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
     
-    # Ensure we have at least two peaks and one valley
-    return len(peak_indices) >= 2 and len(valley_indices) >= 1
+    if len(peak_indices) >= 2 and len(valley_indices) >= 1:
+        pattern_interval = f"{time_index[peak_indices[0]]} to {time_index[peak_indices[-1]]}"
+        return True, pattern_interval
+
+    return False, None
 
 # Double Top detection
-def is_double_top(prices):
+def is_double_top(prices, time_index):
     if len(prices) < 20:
-        return False
+        return False, None
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
     peak_indices = [i for i, p in enumerate(peaks, 1) if p]
     
-    return len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]  # Peaks are close
+    if len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]:
+        pattern_interval = f"{time_index[peak_indices[0]]} to {time_index[peak_indices[1]]}"
+        return True, pattern_interval
+
+    return False, None
 
 # Double Bottom detection
-def is_double_bottom(prices):
+def is_double_bottom(prices, time_index):
     if len(prices) < 20:
-        return False
+        return False, None
     valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
     valley_indices = [i for i, v in enumerate(valleys, 1) if v]
     
-    return len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]  # Valleys are close
+    if len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]:
+        pattern_interval = f"{time_index[valley_indices[0]]} to {time_index[valley_indices[1]]}"
+        return True, pattern_interval
 
-# Bullish percentage calculation
-def calculate_bullish_percentage(data):
-    bullish_count = sum(data['Close'].diff().dropna() > 0)
-    total_count = len(data) - 1
-    return (bullish_count / total_count * 100) if total_count > 0 else 0
+    return False, None
 
 # Bearish percentage calculation
 def calculate_bearish_percentage(data):

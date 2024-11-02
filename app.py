@@ -69,20 +69,21 @@ def detect_chart_pattern(data):
         return "No Pattern"
 
     recent_prices = data['Close'].tail(30).values
-
     patterns = {
         "Head and Shoulders": is_head_and_shoulders(recent_prices),
         "Double Top": is_double_top(recent_prices),
         "Double Bottom": is_double_bottom(recent_prices),
+        "Symmetrical Triangle": is_symmetrical_triangle(recent_prices),
+        "Ascending Triangle": is_ascending_triangle(recent_prices),
+        "Descending Triangle": is_descending_triangle(recent_prices),
     }
     
-    recognized_patterns = [name for name, detected in patterns.items() if detected]
+    recognized_patterns = [(name, 'Daily') for name, detected in patterns.items() if detected]
     
     return recognized_patterns if recognized_patterns else ["No Recognized Pattern"]
 
 # Head and Shoulders detection
 def is_head_and_shoulders(prices):
-    # Implement a simple logic for head and shoulders detection
     if len(prices) < 20:
         return False
     # Check for price peaks and troughs
@@ -92,7 +93,6 @@ def is_head_and_shoulders(prices):
     peak_indices = [i for i, p in enumerate(peaks, 1) if p]
     valley_indices = [i for i, v in enumerate(valleys, 1) if v]
     
-    # Ensure we have at least two peaks and one valley
     return len(peak_indices) >= 2 and len(valley_indices) >= 1
 
 # Double Top detection
@@ -102,7 +102,7 @@ def is_double_top(prices):
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
     peak_indices = [i for i, p in enumerate(peaks, 1) if p]
     
-    return len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]  # Peaks are close
+    return len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]
 
 # Double Bottom detection
 def is_double_bottom(prices):
@@ -111,7 +111,52 @@ def is_double_bottom(prices):
     valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
     valley_indices = [i for i, v in enumerate(valleys, 1) if v]
     
-    return len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]  # Valleys are close
+    return len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]
+
+# Symmetrical Triangle detection
+def is_symmetrical_triangle(prices):
+    if len(prices) < 20:
+        return False
+    # Find local peaks and troughs
+    peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
+    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
+    
+    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
+    
+    if len(peak_indices) < 2 or len(valley_indices) < 2:
+        return False
+    
+    # Check for converging trendlines
+    return (prices[peak_indices[-1]] < prices[peak_indices[0]]) and (prices[valley_indices[-1]] > prices[valley_indices[0]])
+
+# Ascending Triangle detection
+def is_ascending_triangle(prices):
+    if len(prices) < 20:
+        return False
+    peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
+    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
+    
+    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
+    
+    return (len(peak_indices) >= 2 and len(valley_indices) >= 2 and
+            prices[valley_indices[-1]] > prices[valley_indices[0]] and
+            prices[peak_indices[-1]] < prices[peak_indices[0]])
+
+# Descending Triangle detection
+def is_descending_triangle(prices):
+    if len(prices) < 20:
+        return False
+    peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
+    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
+    
+    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
+    
+    return (len(peak_indices) >= 2 and len(valley_indices) >= 2 and
+            prices[valley_indices[-1]] < prices[valley_indices[0]] and
+            prices[peak_indices[-1]] > prices[peak_indices[0]])
 
 # Bullish percentage calculation
 def calculate_bullish_percentage(data):
@@ -159,7 +204,6 @@ def score_stock(indicators, term):
                 score += 2
 
     return score
-
 
 # Function to generate recommendations based on different strategies
 def generate_recommendations(indicators_list):

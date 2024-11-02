@@ -9,28 +9,14 @@ def fetch_indicators(stock):
     data = ticker.history(period="1y")
 
     if data.empty or len(data) < 2:  # Check if DataFrame is empty or has less than 2 rows
-        return {
-            'RSI': None,
-            'MACD': None,
-            'MACD_Signal': None,
-            'MACD_Hist': None,
-            'Upper_BB': None,
-            'Lower_BB': None,
-            'Volatility': None,
-            'Beta': None,
-            'Close': None,
-            'Volume': None,
-            'SMA_50': None,
-            'SMA_200': None,
-            'EMA_12': None,
-            'EMA_26': None,
-            'Average_Volume': None,
-            'Average_Volume_10d': None,
-            'Pattern': None,
-            'Strength_Percentage': None,
-            'Bullish_Percentage': None,
-            'Bearish_Percentage': None
-        }
+        return {key: None for key in [
+            'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
+            'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
+            'Close', 'Volume', 'SMA_50', 'SMA_200', 
+            'EMA_12', 'EMA_26', 'Average_Volume', 
+            'Average_Volume_10d', 'Pattern', 
+            'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
+        ]}
 
     # Calculate indicators
     data['RSI'] = ta.momentum.RSIIndicator(data['Close'], window=14).rsi()
@@ -272,8 +258,11 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-    # Display recommendations
+    # Display recommendations as tables
     for term, stocks in recommendations.items():
         st.subheader(f"{term} Recommendations")
-        for stock in stocks:
-            st.write(stock)
+        if stocks:
+            df = pd.DataFrame(stocks)
+            st.dataframe(df)
+        else:
+            st.write("No recommendations available.")

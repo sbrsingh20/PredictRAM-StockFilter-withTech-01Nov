@@ -9,7 +9,7 @@ def fetch_indicators(stock):
     ticker = yf.Ticker(stock)
     data = ticker.history(period="1y")
 
-    if data.empty:
+    if data.empty or len(data) < 2:  # Check if DataFrame is empty or has less than 2 rows
         return {
             'RSI': None,
             'MACD': None,
@@ -53,9 +53,9 @@ def fetch_indicators(stock):
     beta = ticker.info.get('beta', None)
 
     # Calculate additional metrics
-    # Example logic for Pattern (Bullish or Bearish)
     last_close = data['Close'].iloc[-1]
     previous_close = data['Close'].iloc[-2]
+    
     if last_close > previous_close:
         pattern = "Bullish"
     elif last_close < previous_close:
@@ -77,52 +77,28 @@ def fetch_indicators(stock):
     bullish_percentage = (bullish_days / total_days * 100) if total_days > 0 else 0
     bearish_percentage = (bearish_days / total_days * 100) if total_days > 0 else 0
 
-    try:
-        return {
-            'RSI': data['RSI'].iloc[-1],
-            'MACD': data['MACD'].iloc[-1],
-            'MACD_Signal': data['MACD_Signal'].iloc[-1],
-            'MACD_Hist': data['MACD_Hist'].iloc[-1],
-            'Upper_BB': data['Upper_BB'].iloc[-1],
-            'Lower_BB': data['Lower_BB'].iloc[-1],
-            'Volatility': data['Volatility'].iloc[-1],
-            'Beta': beta,
-            'Close': data['Close'].iloc[-1],
-            'Volume': data['Volume'].iloc[-1],
-            'SMA_50': data['SMA_50'].iloc[-1],
-            'SMA_200': data['SMA_200'].iloc[-1],
-            'EMA_12': data['EMA_12'].iloc[-1],
-            'EMA_26': data['EMA_26'].iloc[-1],
-            'Average_Volume': data['Average_Volume'].iloc[-1],
-            'Average_Volume_10d': data['Average_Volume_10d'].iloc[-1],
-            'Pattern': pattern,
-            'Strength_Percentage': strength_percentage,
-            'Bullish_Percentage': bullish_percentage,
-            'Bearish_Percentage': bearish_percentage
-        }
-    except IndexError:
-        return {
-            'RSI': None,
-            'MACD': None,
-            'MACD_Signal': None,
-            'MACD_Hist': None,
-            'Upper_BB': None,
-            'Lower_BB': None,
-            'Volatility': None,
-            'Beta': None,
-            'Close': None,
-            'Volume': None,
-            'SMA_50': None,
-            'SMA_200': None,
-            'EMA_12': None,
-            'EMA_26': None,
-            'Average_Volume': None,
-            'Average_Volume_10d': None,
-            'Pattern': None,
-            'Strength_Percentage': None,
-            'Bullish_Percentage': None,
-            'Bearish_Percentage': None
-        }
+    return {
+        'RSI': data['RSI'].iloc[-1],
+        'MACD': data['MACD'].iloc[-1],
+        'MACD_Signal': data['MACD_Signal'].iloc[-1],
+        'MACD_Hist': data['MACD_Hist'].iloc[-1],
+        'Upper_BB': data['Upper_BB'].iloc[-1],
+        'Lower_BB': data['Lower_BB'].iloc[-1],
+        'Volatility': data['Volatility'].iloc[-1],
+        'Beta': beta,
+        'Close': last_close,
+        'Volume': data['Volume'].iloc[-1],
+        'SMA_50': data['SMA_50'].iloc[-1],
+        'SMA_200': data['SMA_200'].iloc[-1],
+        'EMA_12': data['EMA_12'].iloc[-1],
+        'EMA_26': data['EMA_26'].iloc[-1],
+        'Average_Volume': data['Average_Volume'].iloc[-1],
+        'Average_Volume_10d': data['Average_Volume_10d'].iloc[-1],
+        'Pattern': pattern,
+        'Strength_Percentage': strength_percentage,
+        'Bullish_Percentage': bullish_percentage,
+        'Bearish_Percentage': bearish_percentage
+    }
 
 # Function to score stocks based on indicators for different terms
 def score_stock(indicators, term):
@@ -215,7 +191,7 @@ def generate_recommendations(indicators_list):
 
             if medium_score > 0:
                 recommendations['Medium Term'].append({
-                    'Stock': stock.replace('.NS', ''),  # Remove .NS
+                    'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
                     'Lower Buy Range': lower_buy_range,
                     'Upper Buy Range': upper_buy_range,
@@ -244,7 +220,7 @@ def generate_recommendations(indicators_list):
 
             if long_score > 0:
                 recommendations['Long Term'].append({
-                    'Stock': stock.replace('.NS', ''),  # Remove .NS
+                    'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
                     'Lower Buy Range': lower_buy_range,
                     'Upper Buy Range': upper_buy_range,
@@ -273,53 +249,27 @@ def generate_recommendations(indicators_list):
 
     return recommendations
 
-# Streamlit app
-st.image("png_2.3-removebg.png", width=400)  # Replace "your_logo.png" with the path to your logo
-st.title("PredictRAM - Stock Analysis and Call Generator")
+# Main Streamlit application
+st.title('Stock Indicator Analysis')
 
-# File upload option
-uploaded_file = st.file_uploader("Upload stocks.xlsx file", type=["xlsx"])
+# Upload CSV file
+uploaded_file = st.file_uploader("Upload a CSV file with stock symbols", type=["csv"])
 
 if uploaded_file is not None:
-    # Read stock symbols from the uploaded file
-    stocks_df = pd.read_excel(uploaded_file)
+    stock_df = pd.read_csv(uploaded_file)
+    stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
+    
+    # Fetch indicators for all stocks
+    indicators_list = {}
+    for stock in stock_symbols:
+        indicators = fetch_indicators(stock)
+        indicators_list[stock] = indicators
 
-    # Check if the required column exists
-    if 'Stock Symbol' in stocks_df.columns:
-        stocks = stocks_df['Stock Symbol'].tolist()
+    # Generate recommendations based on the fetched indicators
+    recommendations = generate_recommendations(indicators_list)
 
-        # Fetch indicators for each stock
-        indicators_list = {stock: fetch_indicators(stock) for stock in stocks}
-
-        # Generate recommendations
-        recommendations = generate_recommendations(indicators_list)
-
-        # Display top 20 recommendations for each term
-        st.subheader("Top 20 Short Term Trades")
-        short_term_df = pd.DataFrame(recommendations['Short Term']).sort_values(by='Score', ascending=False).head(20)
-        st.table(short_term_df)
-
-        st.subheader("Top 20 Medium Term Trades")
-        medium_term_df = pd.DataFrame(recommendations['Medium Term']).sort_values(by='Score', ascending=False).head(20)
-        st.table(medium_term_df)
-
-        st.subheader("Top 20 Long Term Trades")
-        long_term_df = pd.DataFrame(recommendations['Long Term']).sort_values(by='Score', ascending=False).head(20)
-        st.table(long_term_df)
-
-        # Export to Excel
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            short_term_df.to_excel(writer, sheet_name='Short Term', index=False)
-            medium_term_df.to_excel(writer, sheet_name='Medium Term', index=False)
-            long_term_df.to_excel(writer, sheet_name='Long Term', index=False)
-        output.seek(0)
-
-        st.download_button(
-            label="Download Recommendations",
-            data=output,
-            file_name="stock_recommendations.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-        )
-    else:
-        st.error("The uploaded file must contain a column named 'Stock Symbol'.")
+    # Display recommendations
+    for term, stocks in recommendations.items():
+        st.subheader(f"{term} Recommendations")
+        for stock in stocks:
+            st.write(stock)

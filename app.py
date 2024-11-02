@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import ta
+import io
 
 # Function to fetch stock indicators
 def fetch_indicators(stock):
@@ -274,21 +275,24 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-    # Display recommendations as tables
-    for term, stocks in recommendations.items():
-        st.subheader(f"{term} Recommendations")
-        if stocks:
-            df = pd.DataFrame(stocks)
-            st.dataframe(df)
-            
-            # Add download button for Excel
-            excel_file = f"{term}_Recommendations.xlsx"
-            df.to_excel(excel_file, index=False)
-            st.download_button(
-                label="Download as Excel", 
-                data=df.to_excel(index=False), 
-                file_name=excel_file, 
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-        else:
-            st.write("No recommendations available.")
+   # Display recommendations as tables
+for term, stocks in recommendations.items():
+    st.subheader(f"{term} Recommendations")
+    if stocks:
+        df = pd.DataFrame(stocks)
+        st.dataframe(df)
+
+        # Create a BytesIO stream to save the Excel file
+        excel_stream = io.BytesIO()
+        df.to_excel(excel_stream, index=False, engine='openpyxl')
+        excel_stream.seek(0)  # Move to the beginning of the stream
+
+        # Add download button for Excel
+        st.download_button(
+            label="Download as Excel", 
+            data=excel_stream,
+            file_name=f"{term}_Recommendations.xlsx", 
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    else:
+        st.write("No recommendations available.")

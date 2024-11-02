@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import yfinance as yf
 import ta
-import io
 
 # Function to fetch stock indicators
 def fetch_indicators(stock):
@@ -64,10 +63,7 @@ def fetch_indicators(stock):
         pattern = "Neutral"
 
     # Strength Percentage: % change from SMA_50
-    if data['SMA_50'].iloc[-1] is not None:
-        strength_percentage = ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1]) * 100
-    else:
-        strength_percentage = 0
+    strength_percentage = ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0
 
     # Bullish and Bearish Percentage
     recent_changes = data['Close'].pct_change().iloc[-20:]  # last 20 days
@@ -247,16 +243,24 @@ def generate_recommendations(indicators_list):
                     'Bearish_Percentage': indicators['Bearish_Percentage']
                 })
 
+    # Limit the results to 40 stocks for each term
+    for term in recommendations:
+        recommendations[term] = recommendations[term][:40]
+
     return recommendations
 
 # Main Streamlit application
 st.title('Stock Indicator Analysis')
 
-# Upload CSV file
-uploaded_file = st.file_uploader("Upload a CSV file with stock symbols", type=["csv"])
+# Upload file
+uploaded_file = st.file_uploader("Upload a CSV or Excel file with stock symbols", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
-    stock_df = pd.read_csv(uploaded_file)
+    if uploaded_file.name.endswith('.csv'):
+        stock_df = pd.read_csv(uploaded_file)
+    else:
+        stock_df = pd.read_excel(uploaded_file)
+
     stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
     
     # Fetch indicators for all stocks

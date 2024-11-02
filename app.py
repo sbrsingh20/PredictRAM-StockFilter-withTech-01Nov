@@ -8,7 +8,7 @@ def fetch_indicators(stock):
     ticker = yf.Ticker(stock)
     data = ticker.history(period="1y")
 
-    if data.empty or len(data) < 2:  # Check if DataFrame is empty or has less than 2 rows
+    if data.empty or len(data) < 2:
         return {key: None for key in [
             'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
             'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
@@ -41,16 +41,16 @@ def fetch_indicators(stock):
     last_close = data['Close'].iloc[-1]
     previous_close = data['Close'].iloc[-2]
 
-    # Determine candlestick pattern
-    pattern = detect_candlestick_pattern(data)
+    # Determine chart pattern
+    pattern = detect_chart_pattern(data)
 
     return {
         'RSI': data['RSI'].iloc[-1],
-        'MACD': data['MACD'].iloc[-1],
-        'MACD_Signal': data['MACD_Signal'].iloc[-1],
-        'MACD_Hist': data['MACD_Hist'].iloc[-1],
-        'Upper_BB': data['Upper_BB'].iloc[-1],
-        'Lower_BB': data['Lower_BB'].iloc[-1],
+        'MACD': indicators['MACD'],
+        'MACD_Signal': indicators['MACD_Signal'],
+        'MACD_Hist': indicators['MACD_Hist'],
+        'Upper_BB': indicators['Upper_BB'],
+        'Lower_BB': indicators['Lower_BB'],
         'Volatility': data['Volatility'].iloc[-1],
         'Beta': beta,
         'Close': last_close,
@@ -63,31 +63,64 @@ def fetch_indicators(stock):
         'Average_Volume_10d': data['Average_Volume_10d'],
         'Pattern': pattern,
         'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
-        'Bullish_Percentage': None,  # Placeholder
-        'Bearish_Percentage': None   # Placeholder
+        'Bullish_Percentage': calculate_bullish_percentage(data),
+        'Bearish_Percentage': calculate_bearish_percentage(data)
     }
 
-# Function to detect candlestick patterns
-def detect_candlestick_pattern(data):
-    # Basic pattern recognition for last two days
-    if len(data) < 2:
+# Function to detect chart patterns
+def detect_chart_pattern(data):
+    # For simplicity, here we will include just a few patterns
+    # More sophisticated detection logic should be implemented for production
+
+    if len(data) < 30:  # We need at least 30 points to identify patterns
         return "No Pattern"
 
-    # Extract last two days' data
-    today = data.iloc[-1]
-    yesterday = data.iloc[-2]
+    # Detect simple patterns based on closing prices
+    recent_prices = data['Close'].tail(30)
 
-    # Simple pattern recognition logic
-    if today['Close'] > yesterday['Open'] and today['Open'] < yesterday['Close']:
-        return "Bullish Engulfing"
-    elif today['Close'] < yesterday['Open'] and today['Open'] > yesterday['Close']:
-        return "Bearish Engulfing"
-    elif today['Close'] > today['Open']:
-        return "Bullish"
-    elif today['Close'] < today['Open']:
-        return "Bearish"
-    else:
-        return "Doji"
+    # Example pattern detection logic (This can be made much more complex)
+    if is_head_and_shoulders(recent_prices):
+        return "Head and Shoulders"
+    if is_inverse_head_and_shoulders(recent_prices):
+        return "Inverse Head and Shoulders"
+    if is_double_top(recent_prices):
+        return "Double Top"
+    if is_double_bottom(recent_prices):
+        return "Double Bottom"
+    # Add additional patterns as necessary...
+
+    return "No Recognized Pattern"
+
+# Placeholder functions for various patterns
+def is_head_and_shoulders(prices):
+    # Implement logic to identify Head and Shoulders pattern
+    return False
+
+def is_inverse_head_and_shoulders(prices):
+    # Implement logic to identify Inverse Head and Shoulders pattern
+    return False
+
+def is_double_top(prices):
+    # Implement logic to identify Double Top pattern
+    return False
+
+def is_double_bottom(prices):
+    # Implement logic to identify Double Bottom pattern
+    return False
+
+# Function to calculate bullish percentage
+def calculate_bullish_percentage(data):
+    # Example logic to calculate bullish percentage
+    bullish_count = sum(data['Close'].diff().dropna() > 0)
+    total_count = len(data) - 1  # Subtract 1 for the diff operation
+    return (bullish_count / total_count * 100) if total_count > 0 else 0
+
+# Function to calculate bearish percentage
+def calculate_bearish_percentage(data):
+    # Example logic to calculate bearish percentage
+    bearish_count = sum(data['Close'].diff().dropna() < 0)
+    total_count = len(data) - 1  # Subtract 1 for the diff operation
+    return (bearish_count / total_count * 100) if total_count > 0 else 0
 
 # Function to score stocks based on indicators for different terms
 def score_stock(indicators, term):

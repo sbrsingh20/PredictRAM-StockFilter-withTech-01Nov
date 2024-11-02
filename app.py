@@ -32,7 +32,7 @@ def fetch_indicators(stock, interval='1d'):
     data['SMA_200'] = data['Close'].rolling(window=200).mean()
     data['EMA_12'] = ta.trend.EMAIndicator(data['Close'], window=12).ema_indicator()
     data['EMA_26'] = ta.trend.EMAIndicator(data['Close'], window=26).ema_indicator()
-    
+
     average_volume = data['Volume'].mean()
     average_volume_10d = data['Volume'].rolling(window=10).mean().iloc[-1] if len(data['Volume']) >= 10 else None
     beta = ticker.info.get('beta', None)
@@ -263,8 +263,6 @@ def generate_recommendations(indicators_list):
                 recommendations['Medium Term'].append({
                     'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
-                    'Lower Buy Range': lower_buy_range,
-                    'Upper Buy Range': upper_buy_range,
                     'Stop Loss': medium_stop_loss,
                     'Target Price': medium_target,
                     'Score': medium_score,
@@ -292,8 +290,6 @@ def generate_recommendations(indicators_list):
                 recommendations['Long Term'].append({
                     'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
-                    'Lower Buy Range': lower_buy_range,
-                    'Upper Buy Range': upper_buy_range,
                     'Stop Loss': long_stop_loss,
                     'Target Price': long_target,
                     'Score': long_score,
@@ -317,10 +313,6 @@ def generate_recommendations(indicators_list):
                     'Bearish_Percentage': indicators['Bearish_Percentage']
                 })
 
-    # Limit the results to 40 stocks for each term
-    for term in recommendations:
-        recommendations[term] = recommendations[term][:40]
-
     return recommendations
 
 # Main Streamlit application
@@ -335,6 +327,10 @@ if uploaded_file is not None:
     else:
         stock_df = pd.read_excel(uploaded_file)
 
+    if stock_df.empty or 'Stock' not in stock_df.columns:
+        st.error("The uploaded file does not contain a valid 'Stock' column.")
+        st.stop()
+
     stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
     
     # Fetch indicators for all stocks
@@ -346,38 +342,42 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
- # Display recommendations as tables
-for term, stocks in recommendations.items():
-    st.subheader(f"{term} Recommendations")
-    if stocks:
-        df = pd.DataFrame(stocks)
+    if not isinstance(recommendations, dict) or not all(isinstance(val, list) for val in recommendations.values()):
+        st.error("No valid recommendations generated.")
+        st.stop()
 
-        # Round numerical columns to 2 decimals
-        numeric_cols = df.select_dtypes(include=['float64', 'int']).columns
-        df[numeric_cols] = df[numeric_cols].round(2)
+    # Display recommendations as tables
+    for term, stocks in recommendations.items():
+        st.subheader(f"{term} Recommendations")
+        if stocks:
+            df = pd.DataFrame(stocks)
 
-        # Check for columns with mixed types or None values and handle them
-        for col in df.columns:
-            if df[col].isnull().any():
-                df[col] = df[col].fillna('N/A')  # Fill NaN with 'N/A'
+            # Round numerical columns to 2 decimals
+            numeric_cols = df.select_dtypes(include=['float64', 'int']).columns
+            df[numeric_cols] = df[numeric_cols].round(2)
 
-            # Optionally convert columns to string type to avoid type issues
-            df[col] = df[col].astype(str)
+            # Check for columns with mixed types or None values and handle them
+            for col in df.columns:
+                if df[col].isnull().any():
+                    df[col] = df[col].fillna('N/A')  # Fill NaN with 'N/A'
 
-        st.dataframe(df)
+                # Optionally convert columns to string type to avoid type issues
+                df[col] = df[col].astype(str)
 
-        # Provide download option for the Excel file
-        excel_file = f"{term}_recommendations.xlsx"
-        with pd.ExcelWriter(excel_file) as writer:
-            df.to_excel(writer, index=False, sheet_name=term)
+            st.dataframe(df)
 
-        # Streamlit download button
-        with open(excel_file, 'rb') as f:
-            st.download_button(
-                label="Download Excel file",
-                data=f,
-                file_name=excel_file,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-    else:
-        st.write("No recommendations available.")
+            # Provide download option for the Excel file
+            excel_file = f"{term}_recommendations.xlsx"
+            with pd.ExcelWriter(excel_file) as writer:
+                df.to_excel(writer, index=False, sheet_name=term)
+
+            # Streamlit download button
+            with open(excel_file, 'rb') as f:
+                st.download_button(
+                    label="Download Excel file",
+                    data=f,
+                    file_name=excel_file,
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        else:
+            st.write("No recommendations available.")

@@ -338,24 +338,18 @@ if uploaded_file is not None:
     stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
     
     # Fetch indicators for all stocks
-  indicators_list = {}
-  for stock in stock_symbols:
-    indicators = fetch_indicators(stock)
-    if indicators:
+    indicators_list = {}
+    for stock in stock_symbols:
+        indicators = fetch_indicators(stock)
         indicators_list[stock] = indicators
-    else:
-        st.warning(f"No data retrieved for stock: {stock}")
 
-# Generate recommendations based on the fetched indicators
-recommendations = generate_recommendations(indicators_list)
+    # Generate recommendations based on the fetched indicators
+    recommendations = generate_recommendations(indicators_list)
 
-# Debug print to check the structure of recommendations
-st.write("Recommendations structure:", recommendations)
-
-# Display recommendations as tables
+ # Display recommendations as tables
 for term, stocks in recommendations.items():
     st.subheader(f"{term} Recommendations")
-    if stocks and isinstance(stocks, list) and len(stocks) > 0:
+    if stocks:
         df = pd.DataFrame(stocks)
 
         # Round numerical columns to 2 decimals

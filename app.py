@@ -86,6 +86,7 @@ def detect_chart_pattern(data):
 def is_head_and_shoulders(prices):
     if len(prices) < 20:
         return False
+    # Check for price peaks and troughs
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
     valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
     
@@ -116,6 +117,7 @@ def is_double_bottom(prices):
 def is_symmetrical_triangle(prices):
     if len(prices) < 20:
         return False
+    # Find local peaks and troughs
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
     valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
     
@@ -125,6 +127,7 @@ def is_symmetrical_triangle(prices):
     if len(peak_indices) < 2 or len(valley_indices) < 2:
         return False
     
+    # Check for converging trendlines
     return (prices[peak_indices[-1]] < prices[peak_indices[0]]) and (prices[valley_indices[-1]] > prices[valley_indices[0]])
 
 # Ascending Triangle detection
@@ -343,22 +346,11 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-   # Display recommendations as tables
-for term, stocks in recommendations.items():
-    st.subheader(f"{term} Recommendations")
-    if stocks:
-        df = pd.DataFrame(stocks)
-
-        # Check for NaN values
-        if df.isnull().values.any():
-            st.write("DataFrame contains NaN values:")
-            st.write(df[df.isnull().any(axis=1)])
-
-        # Print data types for debugging
-        st.write("DataFrame Data Types:")
-        st.write(df.dtypes)
-
-        # Display the DataFrame
-        st.dataframe(df)
-    else:
-        st.write("No recommendations available.")
+    # Display recommendations as tables
+    for term, stocks in recommendations.items():
+        st.subheader(f"{term} Recommendations")
+        if stocks:
+            df = pd.DataFrame(stocks)
+            st.dataframe(df)
+        else:
+            st.write("No recommendations available.")

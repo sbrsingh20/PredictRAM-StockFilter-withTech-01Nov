@@ -125,6 +125,42 @@ def calculate_bearish_percentage(data):
     total_count = len(data) - 1
     return (bearish_count / total_count * 100) if total_count > 0 else 0
 
+# Function to score stocks based on indicators for different terms
+def score_stock(indicators, term):
+    score = 0
+
+    if term == 'Short Term':
+        if indicators['RSI'] is not None:
+            if indicators['RSI'] < 30 or indicators['RSI'] > 70:
+                score += 2
+            if 30 <= indicators['RSI'] <= 40 or 60 <= indicators['RSI'] <= 70:
+                score += 1
+
+        if indicators['MACD'] is not None:
+            if indicators['MACD'] > 0 and indicators['MACD'] > indicators['MACD_Signal']:
+                score += 2
+
+    elif term == 'Medium Term':
+        if indicators['RSI'] is not None:
+            if 40 <= indicators['RSI'] <= 60:
+                score += 2
+
+        if indicators['MACD'] is not None:
+            if abs(indicators['MACD']) < 0.01:
+                score += 1
+
+    elif term == 'Long Term':
+        if indicators['RSI'] is not None:
+            if 40 <= indicators['RSI'] <= 60:
+                score += 2
+
+        if indicators['Beta'] is not None:
+            if 0.9 <= indicators['Beta'] <= 1.1:
+                score += 2
+
+    return score
+
+
 # Function to generate recommendations based on different strategies
 def generate_recommendations(indicators_list):
     recommendations = {

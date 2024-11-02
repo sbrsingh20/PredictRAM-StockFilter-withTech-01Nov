@@ -1,3 +1,4 @@
+You said:
 import streamlit as st
 import pandas as pd
 import yfinance as yf
@@ -38,7 +39,7 @@ def fetch_indicators(stock, interval='1d'):
     beta = ticker.info.get('beta', None)
 
     last_close = data['Close'].iloc[-1]
-    pattern, time_interval = detect_chart_pattern(data)
+    pattern = detect_chart_pattern(data)
 
     return {
         'RSI': data['RSI'].iloc[-1],
@@ -58,7 +59,6 @@ def fetch_indicators(stock, interval='1d'):
         'Average_Volume': average_volume,
         'Average_Volume_10d': average_volume_10d,
         'Pattern': pattern,
-        'Time Interval': time_interval,
         'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
         'Bullish_Percentage': calculate_bullish_percentage(data),
         'Bearish_Percentage': calculate_bearish_percentage(data)
@@ -67,7 +67,7 @@ def fetch_indicators(stock, interval='1d'):
 # Function to detect chart patterns
 def detect_chart_pattern(data):
     if len(data) < 30:  # Need at least 30 points to identify patterns
-        return "No Pattern", None
+        return "No Pattern"
 
     recent_prices = data['Close'].tail(30).values
 
@@ -75,61 +75,44 @@ def detect_chart_pattern(data):
         "Head and Shoulders": is_head_and_shoulders(recent_prices),
         "Double Top": is_double_top(recent_prices),
         "Double Bottom": is_double_bottom(recent_prices),
-        "Flags": is_flag(recent_prices),
-        "Pennants": is_pennant(recent_prices),
-        "Cup and Handle": is_cup_and_handle(recent_prices),
-        "Rounding Bottom": is_rounding_bottom(recent_prices),
-        "Symmetrical Triangle": is_symmetrical_triangle(recent_prices),
-        "Ascending Triangle": is_ascending_triangle(recent_prices),
-        "Descending Triangle": is_descending_triangle(recent_prices),
     }
     
-    recognized_patterns = [(name, 'Daily') for name, detected in patterns.items() if detected]  # Assuming daily interval for recognized patterns
-    recognized_patterns += [(name, 'Hourly') for name, detected in patterns.items() if detected and name in ["Flags", "Pennants", "Symmetrical Triangle", "Ascending Triangle", "Descending Triangle"]]
+    recognized_patterns = [name for name, detected in patterns.items() if detected]
+    
+    return recognized_patterns if recognized_patterns else ["No Recognized Pattern"]
 
-    return recognized_patterns if recognized_patterns else ["No Recognized Pattern", None]
-
-# Define missing functions with proper logic
+# Head and Shoulders detection
 def is_head_and_shoulders(prices):
-    # Implement head and shoulders detection logic
-    # Return True or False
-    return False  # Placeholder
+    # Implement a simple logic for head and shoulders detection
+    if len(prices) < 20:
+        return False
+    # Check for price peaks and troughs
+    peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
+    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
+    
+    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
+    
+    # Ensure we have at least two peaks and one valley
+    return len(peak_indices) >= 2 and len(valley_indices) >= 1
 
+# Double Top detection
 def is_double_top(prices):
-    # Implement double top detection logic
-    return False  # Placeholder
+    if len(prices) < 20:
+        return False
+    peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
+    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    
+    return len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]  # Peaks are close
 
+# Double Bottom detection
 def is_double_bottom(prices):
-    # Implement double bottom detection logic
-    return False  # Placeholder
-
-def is_flag(prices):
-    # Implement flag detection logic
-    return False  # Placeholder
-
-def is_pennant(prices):
-    # Implement pennant detection logic
-    return False  # Placeholder
-
-def is_cup_and_handle(prices):
-    # Implement cup and handle detection logic
-    return False  # Placeholder
-
-def is_rounding_bottom(prices):
-    # Implement rounding bottom detection logic
-    return False  # Placeholder
-
-def is_symmetrical_triangle(prices):
-    # Implement symmetrical triangle detection logic
-    return False  # Placeholder
-
-def is_ascending_triangle(prices):
-    # Implement ascending triangle detection logic
-    return False  # Placeholder
-
-def is_descending_triangle(prices):
-    # Implement descending triangle detection logic
-    return False  # Placeholder
+    if len(prices) < 20:
+        return False
+    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
+    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
+    
+    return len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]  # Valleys are close
 
 # Bullish percentage calculation
 def calculate_bullish_percentage(data):
@@ -296,7 +279,7 @@ def generate_recommendations(indicators_list):
         recommendations[term] = recommendations[term][:40]
 
     return recommendations
-    
+
 # Main Streamlit application
 st.title('Stock Indicator Analysis')
 

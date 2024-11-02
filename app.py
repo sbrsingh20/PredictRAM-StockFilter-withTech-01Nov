@@ -338,8 +338,8 @@ if uploaded_file is not None:
     stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
     
     # Fetch indicators for all stocks
-   indicators_list = {}
-for stock in stock_symbols:
+  indicators_list = {}
+  for stock in stock_symbols:
     indicators = fetch_indicators(stock)
     if indicators:
         indicators_list[stock] = indicators

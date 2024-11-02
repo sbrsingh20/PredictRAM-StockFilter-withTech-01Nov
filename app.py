@@ -15,8 +15,7 @@ def fetch_indicators(stock, interval='1d'):
             'Close', 'Volume', 'SMA_50', 'SMA_200', 
             'EMA_12', 'EMA_26', 'Average_Volume', 
             'Average_Volume_10d', 'Pattern', 
-            'Pattern_Interval', 'Strength_Percentage', 
-            'Bullish_Percentage', 'Bearish_Percentage'
+            'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
         ]}
 
     # Calculate indicators
@@ -39,7 +38,7 @@ def fetch_indicators(stock, interval='1d'):
     beta = ticker.info.get('beta', None)
 
     last_close = data['Close'].iloc[-1]
-    pattern, interval = detect_chart_pattern(data)
+    pattern = detect_chart_pattern(data)
 
     return {
         'RSI': data['RSI'].iloc[-1],
@@ -59,7 +58,6 @@ def fetch_indicators(stock, interval='1d'):
         'Average_Volume': average_volume,
         'Average_Volume_10d': average_volume_10d,
         'Pattern': pattern,
-        'Pattern_Interval': interval,
         'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
         'Bullish_Percentage': calculate_bullish_percentage(data),
         'Bearish_Percentage': calculate_bearish_percentage(data)
@@ -68,68 +66,60 @@ def fetch_indicators(stock, interval='1d'):
 # Function to detect chart patterns
 def detect_chart_pattern(data):
     if len(data) < 30:  # Need at least 30 points to identify patterns
-        return "No Pattern", None
+        return "No Pattern"
 
     recent_prices = data['Close'].tail(30).values
-    time_index = data.index[-30:]
 
     patterns = {
-        "Head and Shoulders": is_head_and_shoulders(recent_prices, time_index),
-        "Double Top": is_double_top(recent_prices, time_index),
-        "Double Bottom": is_double_bottom(recent_prices, time_index),
+        "Head and Shoulders": is_head_and_shoulders(recent_prices),
+        "Double Top": is_double_top(recent_prices),
+        "Double Bottom": is_double_bottom(recent_prices),
     }
     
-    recognized_patterns = {name: interval for name, (detected, interval) in patterns.items() if detected}
+    recognized_patterns = [name for name, detected in patterns.items() if detected]
     
-    return list(recognized_patterns.keys()) if recognized_patterns else ["No Recognized Pattern"], list(recognized_patterns.values())
+    return recognized_patterns if recognized_patterns else ["No Recognized Pattern"]
 
 # Head and Shoulders detection
-def is_head_and_shoulders(prices, time_index):
+def is_head_and_shoulders(prices):
+    # Implement a simple logic for head and shoulders detection
     if len(prices) < 20:
-        return False, None
+        return False
+    # Check for price peaks and troughs
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
-    valley_indices = [i for i, v in enumerate((prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:]), 1) if v]
-    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
     
-    if len(peak_indices) >= 2 and len(valley_indices) >= 1:
-        pattern_interval = f"{time_index[peak_indices[0]]} to {time_index[peak_indices[-1]]}"
-        return True, pattern_interval
-
-    return False, None
+    peak_indices = [i for i, p in enumerate(peaks, 1) if p]
+    valley_indices = [i for i, v in enumerate(valleys, 1) if v]
+    
+    # Ensure we have at least two peaks and one valley
+    return len(peak_indices) >= 2 and len(valley_indices) >= 1
 
 # Double Top detection
-def is_double_top(prices, time_index):
+def is_double_top(prices):
     if len(prices) < 20:
-        return False, None
+        return False
     peaks = (prices[1:-1] > prices[:-2]) & (prices[1:-1] > prices[2:])
     peak_indices = [i for i, p in enumerate(peaks, 1) if p]
     
-    if len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]:
-        pattern_interval = f"{time_index[peak_indices[0]]} to {time_index[peak_indices[1]]}"
-        return True, pattern_interval
-
-    return False, None
+    return len(peak_indices) >= 2 and abs(prices[peak_indices[0]] - prices[peak_indices[1]]) < 0.01 * prices[peak_indices[0]]  # Peaks are close
 
 # Double Bottom detection
-def is_double_bottom(prices, time_index):
+def is_double_bottom(prices):
     if len(prices) < 20:
-        return False, None
+        return False
     valleys = (prices[1:-1] < prices[:-2]) & (prices[1:-1] < prices[2:])
     valley_indices = [i for i, v in enumerate(valleys, 1) if v]
     
-    if len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]:
-        pattern_interval = f"{time_index[valley_indices[0]]} to {time_index[valley_indices[1]]}"
-        return True, pattern_interval
+    return len(valley_indices) >= 2 and abs(prices[valley_indices[0]] - prices[valley_indices[1]]) < 0.01 * prices[valley_indices[0]]  # Valleys are close
 
-    return False, None
-
-# Function to calculate bullish percentage
+# Bullish percentage calculation
 def calculate_bullish_percentage(data):
     bullish_count = sum(data['Close'].diff().dropna() > 0)
     total_count = len(data) - 1
     return (bullish_count / total_count * 100) if total_count > 0 else 0
 
-# Function to calculate bearish percentage
+# Bearish percentage calculation
 def calculate_bearish_percentage(data):
     bearish_count = sum(data['Close'].diff().dropna() < 0)
     total_count = len(data) - 1
@@ -170,6 +160,7 @@ def score_stock(indicators, term):
 
     return score
 
+
 # Function to generate recommendations based on different strategies
 def generate_recommendations(indicators_list):
     recommendations = {
@@ -179,16 +170,113 @@ def generate_recommendations(indicators_list):
     }
     
     for stock, indicators in indicators_list.items():
-        for term in recommendations.keys():
-            score = score_stock(indicators, term)
-            if score >= 3:  # Threshold for recommendation
-                recommendations[term].append({
-                    'Stock': stock,
-                    'Score': score,
+        current_price = indicators['Close']
+        
+        if current_price is not None:
+            lower_buy_range = current_price * 0.995
+            upper_buy_range = current_price * 1.005
+            short_stop_loss = current_price * (1 - 0.03)
+            short_target = current_price * (1 + 0.05)
+            medium_stop_loss = current_price * (1 - 0.04)
+            medium_target = current_price * (1 + 0.10)
+            long_stop_loss = current_price * (1 - 0.05)
+            long_target = current_price * (1 + 0.15)
+
+            short_score = score_stock(indicators, 'Short Term')
+            medium_score = score_stock(indicators, 'Medium Term')
+            long_score = score_stock(indicators, 'Long Term')
+
+            if short_score > 0:
+                recommendations['Short Term'].append({
+                    'Stock': stock.replace('.NS', ''),
+                    'Current Price': current_price,
+                    'Lower Buy Range': lower_buy_range,
+                    'Upper Buy Range': upper_buy_range,
+                    'Stop Loss': short_stop_loss,
+                    'Target Price': short_target,
+                    'Score': short_score,
+                    'RSI': indicators['RSI'],
+                    'MACD': indicators['MACD'],
+                    'MACD_Signal': indicators['MACD_Signal'],
+                    'Upper_BB': indicators['Upper_BB'],
+                    'Lower_BB': indicators['Lower_BB'],
+                    'Volatility': indicators['Volatility'],
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
                     'Pattern': indicators['Pattern'],
-                    'Pattern_Interval': indicators['Pattern_Interval']
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
                 })
-    
+
+            if medium_score > 0:
+                recommendations['Medium Term'].append({
+                    'Stock': stock.replace('.NS', ''),
+                    'Current Price': current_price,
+                    'Lower Buy Range': lower_buy_range,
+                    'Upper Buy Range': upper_buy_range,
+                    'Stop Loss': medium_stop_loss,
+                    'Target Price': medium_target,
+                    'Score': medium_score,
+                    'RSI': indicators['RSI'],
+                    'MACD': indicators['MACD'],
+                    'MACD_Signal': indicators['MACD_Signal'],
+                    'Upper_BB': indicators['Upper_BB'],
+                    'Lower_BB': indicators['Lower_BB'],
+                    'Volatility': indicators['Volatility'],
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                })
+
+            if long_score > 0:
+                recommendations['Long Term'].append({
+                    'Stock': stock.replace('.NS', ''),
+                    'Current Price': current_price,
+                    'Lower Buy Range': lower_buy_range,
+                    'Upper Buy Range': upper_buy_range,
+                    'Stop Loss': long_stop_loss,
+                    'Target Price': long_target,
+                    'Score': long_score,
+                    'RSI': indicators['RSI'],
+                    'MACD': indicators['MACD'],
+                    'MACD_Signal': indicators['MACD_Signal'],
+                    'Upper_BB': indicators['Upper_BB'],
+                    'Lower_BB': indicators['Lower_BB'],
+                    'Volatility': indicators['Volatility'],
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                })
+
+    # Limit the results to 40 stocks for each term
+    for term in recommendations:
+        recommendations[term] = recommendations[term][:40]
+
     return recommendations
 
 # Main Streamlit application

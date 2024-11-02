@@ -32,14 +32,15 @@ def fetch_indicators(stock):
     data['SMA_200'] = data['Close'].rolling(window=200).mean()
     data['EMA_12'] = ta.trend.EMAIndicator(data['Close'], window=12).ema_indicator()
     data['EMA_26'] = ta.trend.EMAIndicator(data['Close'], window=26).ema_indicator()
-    data['Average_Volume'] = data['Volume'].mean()
-    data['Average_Volume_10d'] = data['Volume'].rolling(window=10).mean()
+    
+    # Calculate average volume
+    average_volume = data['Volume'].mean()
+    average_volume_10d = data['Volume'].rolling(window=10).mean().iloc[-1] if len(data['Volume']) >= 10 else None
 
     beta = ticker.info.get('beta', None)
 
     # Calculate additional metrics
     last_close = data['Close'].iloc[-1]
-    previous_close = data['Close'].iloc[-2]
 
     # Determine chart pattern
     pattern = detect_chart_pattern(data)
@@ -59,8 +60,8 @@ def fetch_indicators(stock):
         'SMA_200': data['SMA_200'].iloc[-1],
         'EMA_12': data['EMA_12'].iloc[-1],
         'EMA_26': data['EMA_26'].iloc[-1],
-        'Average_Volume': data['Average_Volume'],
-        'Average_Volume_10d': data['Average_Volume_10d'],
+        'Average_Volume': average_volume,
+        'Average_Volume_10d': average_volume_10d,
         'Pattern': pattern,
         'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
         'Bullish_Percentage': calculate_bullish_percentage(data),

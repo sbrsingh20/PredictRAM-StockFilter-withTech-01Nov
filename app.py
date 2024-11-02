@@ -69,18 +69,6 @@ def fetch_indicators(stock):
     }
 
 
-
-# Function to detect chart patterns
-import streamlit as st
-import pandas as pd
-import yfinance as yf
-import ta
-
-# Function to fetch stock indicators
-def fetch_indicators(stock):
-    # (your existing fetch_indicators code here, with the updates made previously)
-    # ...
-
 # Function to detect chart patterns
 def detect_chart_pattern(data):
     if len(data) < 30:  # We need at least 30 points to identify patterns

@@ -4,9 +4,9 @@ import yfinance as yf
 import ta
 
 # Function to fetch stock indicators
-def fetch_indicators(stock):
+def fetch_indicators(stock, interval='1d'):
     ticker = yf.Ticker(stock)
-    data = ticker.history(period="1y")
+    data = ticker.history(period="1y", interval=interval)
 
     if data.empty or len(data) < 2:
         return {key: None for key in [
@@ -68,31 +68,34 @@ def fetch_indicators(stock):
         'Bearish_Percentage': calculate_bearish_percentage(data)
     }
 
-
-
 # Function to detect chart patterns
 def detect_chart_pattern(data):
-    # For simplicity, here we will include just a few patterns
-    # More sophisticated detection logic should be implemented for production
-
     if len(data) < 30:  # We need at least 30 points to identify patterns
         return "No Pattern"
 
-    # Detect simple patterns based on closing prices
     recent_prices = data['Close'].tail(30)
 
-    # Example pattern detection logic (This can be made much more complex)
-    if is_head_and_shoulders(recent_prices):
-        return "Head and Shoulders"
-    if is_inverse_head_and_shoulders(recent_prices):
-        return "Inverse Head and Shoulders"
-    if is_double_top(recent_prices):
-        return "Double Top"
-    if is_double_bottom(recent_prices):
-        return "Double Bottom"
-    # Add additional patterns as necessary...
-
-    return "No Recognized Pattern"
+    # Detecting various patterns based on closing prices
+    patterns = {
+        "Head and Shoulders": is_head_and_shoulders(recent_prices),
+        "Inverse Head and Shoulders": is_inverse_head_and_shoulders(recent_prices),
+        "Double Top": is_double_top(recent_prices),
+        "Double Bottom": is_double_bottom(recent_prices),
+        "Triple Top": is_triple_top(recent_prices),
+        "Triple Bottom": is_triple_bottom(recent_prices),
+        "Flags": is_flags(recent_prices),
+        "Pennants": is_pennants(recent_prices),
+        "Cup and Handle": is_cup_and_handle(recent_prices),
+        "Rounding Bottom": is_rounding_bottom(recent_prices),
+        "Symmetrical Triangle": is_symmetrical_triangle(recent_prices),
+        "Ascending Triangle": is_ascending_triangle(recent_prices),
+        "Descending Triangle": is_descending_triangle(recent_prices),
+        "Gaps": is_gaps(recent_prices)
+    }
+    
+    recognized_patterns = [name for name, detected in patterns.items() if detected]
+    
+    return recognized_patterns if recognized_patterns else ["No Recognized Pattern"]
 
 # Placeholder functions for various patterns
 def is_head_and_shoulders(prices):
@@ -111,18 +114,56 @@ def is_double_bottom(prices):
     # Implement logic to identify Double Bottom pattern
     return False
 
+def is_triple_top(prices):
+    # Implement logic to identify Triple Top pattern
+    return False
+
+def is_triple_bottom(prices):
+    # Implement logic to identify Triple Bottom pattern
+    return False
+
+def is_flags(prices):
+    # Implement logic to identify Flags pattern
+    return False
+
+def is_pennants(prices):
+    # Implement logic to identify Pennants pattern
+    return False
+
+def is_cup_and_handle(prices):
+    # Implement logic to identify Cup and Handle pattern
+    return False
+
+def is_rounding_bottom(prices):
+    # Implement logic to identify Rounding Bottom pattern
+    return False
+
+def is_symmetrical_triangle(prices):
+    # Implement logic to identify Symmetrical Triangle pattern
+    return False
+
+def is_ascending_triangle(prices):
+    # Implement logic to identify Ascending Triangle pattern
+    return False
+
+def is_descending_triangle(prices):
+    # Implement logic to identify Descending Triangle pattern
+    return False
+
+def is_gaps(prices):
+    # Implement logic to identify Gaps pattern
+    return False
+
 # Function to calculate bullish percentage
 def calculate_bullish_percentage(data):
-    # Example logic to calculate bullish percentage
     bullish_count = sum(data['Close'].diff().dropna() > 0)
-    total_count = len(data) - 1  # Subtract 1 for the diff operation
+    total_count = len(data) - 1
     return (bullish_count / total_count * 100) if total_count > 0 else 0
 
 # Function to calculate bearish percentage
 def calculate_bearish_percentage(data):
-    # Example logic to calculate bearish percentage
     bearish_count = sum(data['Close'].diff().dropna() < 0)
-    total_count = len(data) - 1  # Subtract 1 for the diff operation
+    total_count = len(data) - 1
     return (bearish_count / total_count * 100) if total_count > 0 else 0
 
 # Function to score stocks based on indicators for different terms
@@ -132,31 +173,31 @@ def score_stock(indicators, term):
     if term == 'Short Term':
         if indicators['RSI'] is not None:
             if indicators['RSI'] < 30 or indicators['RSI'] > 70:
-                score += 2  # Good
+                score += 2
             if 30 <= indicators['RSI'] <= 40 or 60 <= indicators['RSI'] <= 70:
-                score += 1  # Neutral
+                score += 1
 
         if indicators['MACD'] is not None:
             if indicators['MACD'] > 0 and indicators['MACD'] > indicators['MACD_Signal']:
-                score += 2  # Good
+                score += 2
 
     elif term == 'Medium Term':
         if indicators['RSI'] is not None:
             if 40 <= indicators['RSI'] <= 60:
-                score += 2  # Good
+                score += 2
 
         if indicators['MACD'] is not None:
-            if abs(indicators['MACD']) < 0.01:  # Close to zero
-                score += 1  # Neutral
+            if abs(indicators['MACD']) < 0.01:
+                score += 1
 
     elif term == 'Long Term':
         if indicators['RSI'] is not None:
             if 40 <= indicators['RSI'] <= 60:
-                score += 2  # Good
+                score += 2
 
         if indicators['Beta'] is not None:
             if 0.9 <= indicators['Beta'] <= 1.1:
-                score += 2  # Good
+                score += 2
 
     return score
 
@@ -172,14 +213,14 @@ def generate_recommendations(indicators_list):
         current_price = indicators['Close']
         
         if current_price is not None:
-            lower_buy_range = current_price * 0.995  # 0.5% lower
-            upper_buy_range = current_price * 1.005  # 0.5% higher
-            short_stop_loss = current_price * (1 - 0.03)  # Max 3%
-            short_target = current_price * (1 + 0.05)  # Min 5%
-            medium_stop_loss = current_price * (1 - 0.04)  # Max 4%
-            medium_target = current_price * (1 + 0.10)  # Min 10%
-            long_stop_loss = current_price * (1 - 0.05)  # Max 5%
-            long_target = current_price * (1 + 0.15)  # Min 15%
+            lower_buy_range = current_price * 0.995
+            upper_buy_range = current_price * 1.005
+            short_stop_loss = current_price * (1 - 0.03)
+            short_target = current_price * (1 + 0.05)
+            medium_stop_loss = current_price * (1 - 0.04)
+            medium_target = current_price * (1 + 0.10)
+            long_stop_loss = current_price * (1 - 0.05)
+            long_target = current_price * (1 + 0.15)
 
             short_score = score_stock(indicators, 'Short Term')
             medium_score = score_stock(indicators, 'Medium Term')
@@ -187,7 +228,7 @@ def generate_recommendations(indicators_list):
 
             if short_score > 0:
                 recommendations['Short Term'].append({
-                    'Stock': stock.replace('.NS', ''),  # Remove .NS
+                    'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
                     'Lower Buy Range': lower_buy_range,
                     'Upper Buy Range': upper_buy_range,

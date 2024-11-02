@@ -40,24 +40,9 @@ def fetch_indicators(stock):
     # Calculate additional metrics
     last_close = data['Close'].iloc[-1]
     previous_close = data['Close'].iloc[-2]
-    
-    if last_close > previous_close:
-        pattern = "Bullish"
-    elif last_close < previous_close:
-        pattern = "Bearish"
-    else:
-        pattern = "Neutral"
 
-    # Strength Percentage: % change from SMA_50
-    strength_percentage = ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0
-
-    # Bullish and Bearish Percentage
-    recent_changes = data['Close'].pct_change().iloc[-20:]  # last 20 days
-    bullish_days = (recent_changes > 0).sum()
-    bearish_days = (recent_changes < 0).sum()
-    total_days = bullish_days + bearish_days
-    bullish_percentage = (bullish_days / total_days * 100) if total_days > 0 else 0
-    bearish_percentage = (bearish_days / total_days * 100) if total_days > 0 else 0
+    # Determine candlestick pattern
+    pattern = detect_candlestick_pattern(data)
 
     return {
         'RSI': data['RSI'].iloc[-1],
@@ -74,13 +59,35 @@ def fetch_indicators(stock):
         'SMA_200': data['SMA_200'].iloc[-1],
         'EMA_12': data['EMA_12'].iloc[-1],
         'EMA_26': data['EMA_26'].iloc[-1],
-        'Average_Volume': data['Average_Volume'].iloc[-1],
-        'Average_Volume_10d': data['Average_Volume_10d'].iloc[-1],
+        'Average_Volume': data['Average_Volume'],
+        'Average_Volume_10d': data['Average_Volume_10d'],
         'Pattern': pattern,
-        'Strength_Percentage': strength_percentage,
-        'Bullish_Percentage': bullish_percentage,
-        'Bearish_Percentage': bearish_percentage
+        'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
+        'Bullish_Percentage': None,  # Placeholder
+        'Bearish_Percentage': None   # Placeholder
     }
+
+# Function to detect candlestick patterns
+def detect_candlestick_pattern(data):
+    # Basic pattern recognition for last two days
+    if len(data) < 2:
+        return "No Pattern"
+
+    # Extract last two days' data
+    today = data.iloc[-1]
+    yesterday = data.iloc[-2]
+
+    # Simple pattern recognition logic
+    if today['Close'] > yesterday['Open'] and today['Open'] < yesterday['Close']:
+        return "Bullish Engulfing"
+    elif today['Close'] < yesterday['Open'] and today['Open'] > yesterday['Close']:
+        return "Bearish Engulfing"
+    elif today['Close'] > today['Open']:
+        return "Bullish"
+    elif today['Close'] < today['Open']:
+        return "Bearish"
+    else:
+        return "Doji"
 
 # Function to score stocks based on indicators for different terms
 def score_stock(indicators, term):

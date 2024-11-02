@@ -46,11 +46,11 @@ def fetch_indicators(stock):
 
     return {
         'RSI': data['RSI'].iloc[-1],
-        'MACD': indicators['MACD'],
-        'MACD_Signal': indicators['MACD_Signal'],
-        'MACD_Hist': indicators['MACD_Hist'],
-        'Upper_BB': indicators['Upper_BB'],
-        'Lower_BB': indicators['Lower_BB'],
+        'MACD': data['MACD'].iloc[-1],
+        'MACD_Signal': data['MACD_Signal'].iloc[-1],
+        'MACD_Hist': data['MACD_Hist'].iloc[-1],
+        'Upper_BB': data['Upper_BB'].iloc[-1],
+        'Lower_BB': data['Lower_BB'].iloc[-1],
         'Volatility': data['Volatility'].iloc[-1],
         'Beta': beta,
         'Close': last_close,
@@ -66,6 +66,7 @@ def fetch_indicators(stock):
         'Bullish_Percentage': calculate_bullish_percentage(data),
         'Bearish_Percentage': calculate_bearish_percentage(data)
     }
+
 
 # Function to detect chart patterns
 def detect_chart_pattern(data):

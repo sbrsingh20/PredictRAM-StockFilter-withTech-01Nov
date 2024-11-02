@@ -4,9 +4,9 @@ import yfinance as yf
 import ta
 
 # Function to fetch stock indicators
-def fetch_indicators(stock, interval='1d'):
+def fetch_indicators(stock):
     ticker = yf.Ticker(stock)
-    data = ticker.history(period="1y", interval=interval)
+    data = ticker.history(period="1y")
 
     if data.empty or len(data) < 2:
         return {key: None for key in [
@@ -32,17 +32,13 @@ def fetch_indicators(stock, interval='1d'):
     data['SMA_200'] = data['Close'].rolling(window=200).mean()
     data['EMA_12'] = ta.trend.EMAIndicator(data['Close'], window=12).ema_indicator()
     data['EMA_26'] = ta.trend.EMAIndicator(data['Close'], window=26).ema_indicator()
-    
-    # Calculate average volume
+
     average_volume = data['Volume'].mean()
     average_volume_10d = data['Volume'].rolling(window=10).mean().iloc[-1] if len(data['Volume']) >= 10 else None
 
     beta = ticker.info.get('beta', None)
-
-    # Calculate additional metrics
     last_close = data['Close'].iloc[-1]
 
-    # Determine chart pattern
     pattern = detect_chart_pattern(data)
 
     return {
@@ -70,89 +66,42 @@ def fetch_indicators(stock, interval='1d'):
 
 # Function to detect chart patterns
 def detect_chart_pattern(data):
-    if len(data) < 30:  # We need at least 30 points to identify patterns
-        return "No Pattern"
+    if len(data) < 30:
+        return "No Recognized Pattern"
 
     recent_prices = data['Close'].tail(30)
 
-    # Detecting various patterns based on closing prices
     patterns = {
         "Head and Shoulders": is_head_and_shoulders(recent_prices),
         "Inverse Head and Shoulders": is_inverse_head_and_shoulders(recent_prices),
         "Double Top": is_double_top(recent_prices),
         "Double Bottom": is_double_bottom(recent_prices),
         "Triple Top": is_triple_top(recent_prices),
-        "Triple Bottom": is_triple_bottom(recent_prices),
-        "Flags": is_flags(recent_prices),
-        "Pennants": is_pennants(recent_prices),
-        "Cup and Handle": is_cup_and_handle(recent_prices),
-        "Rounding Bottom": is_rounding_bottom(recent_prices),
-        "Symmetrical Triangle": is_symmetrical_triangle(recent_prices),
-        "Ascending Triangle": is_ascending_triangle(recent_prices),
-        "Descending Triangle": is_descending_triangle(recent_prices),
-        "Gaps": is_gaps(recent_prices)
+        "Triple Bottom": is_triple_bottom(recent_prices)
     }
-    
+
     recognized_patterns = [name for name, detected in patterns.items() if detected]
-    
+
     return recognized_patterns if recognized_patterns else ["No Recognized Pattern"]
 
 # Placeholder functions for various patterns
 def is_head_and_shoulders(prices):
-    # Implement logic to identify Head and Shoulders pattern
-    return False
+    return len(prices) >= 5 and prices[-1] > max(prices[-3:-1])
 
 def is_inverse_head_and_shoulders(prices):
-    # Implement logic to identify Inverse Head and Shoulders pattern
-    return False
+    return len(prices) >= 5 and prices[-1] < min(prices[-3:-1])
 
 def is_double_top(prices):
-    # Implement logic to identify Double Top pattern
-    return False
+    return len(prices) >= 3 and prices[-1] > prices[-2] and prices[-2] > prices[-3]
 
 def is_double_bottom(prices):
-    # Implement logic to identify Double Bottom pattern
-    return False
+    return len(prices) >= 3 and prices[-1] < prices[-2] and prices[-2] < prices[-3]
 
 def is_triple_top(prices):
-    # Implement logic to identify Triple Top pattern
-    return False
+    return len(prices) >= 5 and prices[-1] > max(prices[-3:-1])
 
 def is_triple_bottom(prices):
-    # Implement logic to identify Triple Bottom pattern
-    return False
-
-def is_flags(prices):
-    # Implement logic to identify Flags pattern
-    return False
-
-def is_pennants(prices):
-    # Implement logic to identify Pennants pattern
-    return False
-
-def is_cup_and_handle(prices):
-    # Implement logic to identify Cup and Handle pattern
-    return False
-
-def is_rounding_bottom(prices):
-    # Implement logic to identify Rounding Bottom pattern
-    return False
-
-def is_symmetrical_triangle(prices):
-    # Implement logic to identify Symmetrical Triangle pattern
-    return False
-
-def is_ascending_triangle(prices):
-    # Implement logic to identify Ascending Triangle pattern
-    return False
-
-def is_descending_triangle(prices):
-    # Implement logic to identify Descending Triangle pattern
-    return False
-
-def is_gaps(prices):
-    # Implement logic to identify Gaps pattern
-    return False
+    return len(prices) >= 5 and prices[-1] < min(prices[-3:-1])
 
 # Function to calculate bullish percentage
 def calculate_bullish_percentage(data):
@@ -240,27 +189,13 @@ def generate_recommendations(indicators_list):
                     'MACD_Signal': indicators['MACD_Signal'],
                     'Upper_BB': indicators['Upper_BB'],
                     'Lower_BB': indicators['Lower_BB'],
-                    'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta'],
-                    'Volume': indicators['Volume'],
-                    'SMA_50': indicators['SMA_50'],
-                    'SMA_200': indicators['SMA_200'],
-                    'EMA_12': indicators['EMA_12'],
-                    'EMA_26': indicators['EMA_26'],
-                    'Average_Volume': indicators['Average_Volume'],
-                    'Average_Volume_10d': indicators['Average_Volume_10d'],
-                    'Pattern': indicators['Pattern'],
-                    'Strength_Percentage': indicators['Strength_Percentage'],
-                    'Bullish_Percentage': indicators['Bullish_Percentage'],
-                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                    'Pattern': indicators['Pattern']
                 })
 
             if medium_score > 0:
                 recommendations['Medium Term'].append({
                     'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
-                    'Lower Buy Range': lower_buy_range,
-                    'Upper Buy Range': upper_buy_range,
                     'Stop Loss': medium_stop_loss,
                     'Target Price': medium_target,
                     'Score': medium_score,
@@ -269,27 +204,13 @@ def generate_recommendations(indicators_list):
                     'MACD_Signal': indicators['MACD_Signal'],
                     'Upper_BB': indicators['Upper_BB'],
                     'Lower_BB': indicators['Lower_BB'],
-                    'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta'],
-                    'Volume': indicators['Volume'],
-                    'SMA_50': indicators['SMA_50'],
-                    'SMA_200': indicators['SMA_200'],
-                    'EMA_12': indicators['EMA_12'],
-                    'EMA_26': indicators['EMA_26'],
-                    'Average_Volume': indicators['Average_Volume'],
-                    'Average_Volume_10d': indicators['Average_Volume_10d'],
-                    'Pattern': indicators['Pattern'],
-                    'Strength_Percentage': indicators['Strength_Percentage'],
-                    'Bullish_Percentage': indicators['Bullish_Percentage'],
-                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                    'Pattern': indicators['Pattern']
                 })
 
             if long_score > 0:
                 recommendations['Long Term'].append({
                     'Stock': stock.replace('.NS', ''),
                     'Current Price': current_price,
-                    'Lower Buy Range': lower_buy_range,
-                    'Upper Buy Range': upper_buy_range,
                     'Stop Loss': long_stop_loss,
                     'Target Price': long_target,
                     'Score': long_score,
@@ -298,55 +219,33 @@ def generate_recommendations(indicators_list):
                     'MACD_Signal': indicators['MACD_Signal'],
                     'Upper_BB': indicators['Upper_BB'],
                     'Lower_BB': indicators['Lower_BB'],
-                    'Volatility': indicators['Volatility'],
-                    'Beta': indicators['Beta'],
-                    'Volume': indicators['Volume'],
-                    'SMA_50': indicators['SMA_50'],
-                    'SMA_200': indicators['SMA_200'],
-                    'EMA_12': indicators['EMA_12'],
-                    'EMA_26': indicators['EMA_26'],
-                    'Average_Volume': indicators['Average_Volume'],
-                    'Average_Volume_10d': indicators['Average_Volume_10d'],
-                    'Pattern': indicators['Pattern'],
-                    'Strength_Percentage': indicators['Strength_Percentage'],
-                    'Bullish_Percentage': indicators['Bullish_Percentage'],
-                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                    'Pattern': indicators['Pattern']
                 })
-
-    # Limit the results to 40 stocks for each term
-    for term in recommendations:
-        recommendations[term] = recommendations[term][:40]
 
     return recommendations
 
-# Main Streamlit application
-st.title('Stock Indicator Analysis')
+# Streamlit UI
+st.title("Stock Analysis Dashboard")
+stocks = st.text_area("Enter stock tickers (comma-separated):", "AAPL, MSFT, GOOG").split(',')
+stocks = [stock.strip() for stock in stocks if stock.strip()]
 
-# Upload file
-uploaded_file = st.file_uploader("Upload a CSV or Excel file with stock symbols", type=["csv", "xlsx"])
-
-if uploaded_file is not None:
-    if uploaded_file.name.endswith('.csv'):
-        stock_df = pd.read_csv(uploaded_file)
-    else:
-        stock_df = pd.read_excel(uploaded_file)
-
-    stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
-    
-    # Fetch indicators for all stocks
+if st.button("Analyze Stocks"):
     indicators_list = {}
-    for stock in stock_symbols:
+    
+    for stock in stocks:
         indicators = fetch_indicators(stock)
         indicators_list[stock] = indicators
 
-    # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-    # Display recommendations as tables
-    for term, stocks in recommendations.items():
+    for term, recs in recommendations.items():
         st.subheader(f"{term} Recommendations")
-        if stocks:
-            df = pd.DataFrame(stocks)
-            st.dataframe(df)
+        if recs:
+            for rec in recs:
+                st.write(f"**{rec['Stock']}**: Current Price: {rec['Current Price']:.2f}, Stop Loss: {rec['Stop Loss']:.2f}, Target Price: {rec['Target Price']:.2f}, Score: {rec['Score']}, Pattern: {rec['Pattern']}")
         else:
-            st.write("No recommendations available.")
+            st.write("No recommendations.")
+
+# Run the app
+if __name__ == "__main__":
+    st.write("Use the sidebar to interact with the app.")

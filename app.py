@@ -346,11 +346,21 @@ if uploaded_file is not None:
     # Generate recommendations based on the fetched indicators
     recommendations = generate_recommendations(indicators_list)
 
-    # Display recommendations as tables
-    for term, stocks in recommendations.items():
-        st.subheader(f"{term} Recommendations")
-        if stocks:
-            df = pd.DataFrame(stocks)
-            st.dataframe(df)
-        else:
-            st.write("No recommendations available.")
+   # Display recommendations as tables
+for term, stocks in recommendations.items():
+    st.subheader(f"{term} Recommendations")
+    if stocks:
+        df = pd.DataFrame(stocks)
+        
+        # Check for columns with mixed types or None values and handle them
+        for col in df.columns:
+            if df[col].isnull().any():
+                # You can fill NaN with a placeholder (e.g., 'N/A') or drop those rows
+                df[col] = df[col].fillna('N/A')  # or df.dropna(subset=[col], inplace=True)
+
+            # Optionally convert columns to string type to avoid type issues
+            df[col] = df[col].astype(str)
+
+        st.dataframe(df)
+    else:
+        st.write("No recommendations available.")

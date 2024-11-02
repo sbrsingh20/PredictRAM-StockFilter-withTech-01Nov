@@ -167,33 +167,187 @@ def calculate_bearish_percentage(data):
     total_count = len(data) - 1
     return (bearish_count / total_count * 100) if total_count > 0 else 0
 
-# Streamlit UI
-st.title("Stock Recommendations App")
+# Function to score stocks based on indicators for different terms
+def score_stock(indicators, term):
+    score = 0
 
-stock_input = st.text_input("Enter stock tickers (comma separated)", "AAPL, MSFT, TSLA")
-if st.button("Generate Recommendations"):
-    stock_list = [stock.strip().upper() for stock in stock_input.split(",")]
-    recommendations = {}
+    if term == 'Short Term':
+        if indicators['RSI'] is not None:
+            if indicators['RSI'] < 30 or indicators['RSI'] > 70:
+                score += 2
+            if 30 <= indicators['RSI'] <= 40 or 60 <= indicators['RSI'] <= 70:
+                score += 1
 
-    for stock in stock_list:
-        indicators = fetch_indicators(stock)
-        recommendations[stock] = indicators
+        if indicators['MACD'] is not None:
+            if indicators['MACD'] > 0 and indicators['MACD'] > indicators['MACD_Signal']:
+                score += 2
+
+    elif term == 'Medium Term':
+        if indicators['RSI'] is not None:
+            if 40 <= indicators['RSI'] <= 60:
+                score += 2
+
+        if indicators['MACD'] is not None:
+            if abs(indicators['MACD']) < 0.01:
+                score += 1
+
+    elif term == 'Long Term':
+        if indicators['RSI'] is not None:
+            if 40 <= indicators['RSI'] <= 60:
+                score += 2
+
+        if indicators['Beta'] is not None:
+            if 0.9 <= indicators['Beta'] <= 1.1:
+                score += 2
+
+    return score
+
+# Function to generate recommendations based on different strategies
+def generate_recommendations(indicators_list):
+    recommendations = {
+        'Short Term': [],
+        'Medium Term': [],
+        'Long Term': []
+    }
     
+    for stock, indicators in indicators_list.items():
+        current_price = indicators['Close']
+        
+        if current_price is not None:
+            lower_buy_range = current_price * 0.995
+            upper_buy_range = current_price * 1.005
+            short_stop_loss = current_price * (1 - 0.03)
+            short_target = current_price * (1 + 0.05)
+            medium_stop_loss = current_price * (1 - 0.04)
+            medium_target = current_price * (1 + 0.10)
+            long_stop_loss = current_price * (1 - 0.05)
+            long_target = current_price * (1 + 0.15)
+
+            short_score = score_stock(indicators, 'Short Term')
+            medium_score = score_stock(indicators, 'Medium Term')
+            long_score = score_stock(indicators, 'Long Term')
+
+            if short_score > 0:
+                recommendations['Short Term'].append({
+                    'Stock': stock.replace('.NS', ''),
+                    'Current Price': current_price,
+                    'Lower Buy Range': lower_buy_range,
+                    'Upper Buy Range': upper_buy_range,
+                    'Stop Loss': short_stop_loss,
+                    'Target Price': short_target,
+                    'Score': short_score,
+                    'RSI': indicators['RSI'],
+                    'MACD': indicators['MACD'],
+                    'MACD_Signal': indicators['MACD_Signal'],
+                    'Upper_BB': indicators['Upper_BB'],
+                    'Lower_BB': indicators['Lower_BB'],
+                    'Volatility': indicators['Volatility'],
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                })
+
+            if medium_score > 0:
+                recommendations['Medium Term'].append({
+                    'Stock': stock.replace('.NS', ''),
+                    'Current Price': current_price,
+                    'Lower Buy Range': lower_buy_range,
+                    'Upper Buy Range': upper_buy_range,
+                    'Stop Loss': medium_stop_loss,
+                    'Target Price': medium_target,
+                    'Score': medium_score,
+                    'RSI': indicators['RSI'],
+                    'MACD': indicators['MACD'],
+                    'MACD_Signal': indicators['MACD_Signal'],
+                    'Upper_BB': indicators['Upper_BB'],
+                    'Lower_BB': indicators['Lower_BB'],
+                    'Volatility': indicators['Volatility'],
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                })
+
+            if long_score > 0:
+                recommendations['Long Term'].append({
+                    'Stock': stock.replace('.NS', ''),
+                    'Current Price': current_price,
+                    'Lower Buy Range': lower_buy_range,
+                    'Upper Buy Range': upper_buy_range,
+                    'Stop Loss': long_stop_loss,
+                    'Target Price': long_target,
+                    'Score': long_score,
+                    'RSI': indicators['RSI'],
+                    'MACD': indicators['MACD'],
+                    'MACD_Signal': indicators['MACD_Signal'],
+                    'Upper_BB': indicators['Upper_BB'],
+                    'Lower_BB': indicators['Lower_BB'],
+                    'Volatility': indicators['Volatility'],
+                    'Beta': indicators['Beta'],
+                    'Volume': indicators['Volume'],
+                    'SMA_50': indicators['SMA_50'],
+                    'SMA_200': indicators['SMA_200'],
+                    'EMA_12': indicators['EMA_12'],
+                    'EMA_26': indicators['EMA_26'],
+                    'Average_Volume': indicators['Average_Volume'],
+                    'Average_Volume_10d': indicators['Average_Volume_10d'],
+                    'Pattern': indicators['Pattern'],
+                    'Strength_Percentage': indicators['Strength_Percentage'],
+                    'Bullish_Percentage': indicators['Bullish_Percentage'],
+                    'Bearish_Percentage': indicators['Bearish_Percentage']
+                })
+
+    # Limit the results to 40 stocks for each term
+    for term in recommendations:
+        recommendations[term] = recommendations[term][:40]
+
+    return recommendations
+
+# Main Streamlit application
+st.title('Stock Indicator Analysis')
+
+# Upload file
+uploaded_file = st.file_uploader("Upload a CSV or Excel file with stock symbols", type=["csv", "xlsx"])
+
+if uploaded_file is not None:
+    if uploaded_file.name.endswith('.csv'):
+        stock_df = pd.read_csv(uploaded_file)
+    else:
+        stock_df = pd.read_excel(uploaded_file)
+
+    stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
+    
+    # Fetch indicators for all stocks
+    indicators_list = {}
+    for stock in stock_symbols:
+        indicators = fetch_indicators(stock)
+        indicators_list[stock] = indicators
+
+    # Generate recommendations based on the fetched indicators
+    recommendations = generate_recommendations(indicators_list)
+
     # Display recommendations as tables
-    for stock, indicators in recommendations.items():
-        st.subheader(f"{stock} Recommendations")
-        if indicators:
-            df = pd.DataFrame([indicators])  # Create DataFrame from a single dictionary
-
-            # Handle any potential issues
-            df = df.fillna('N/A')  # Fill NaN with a placeholder
-            
-            # Ensure all data types are consistent
-            for col in df.columns:
-                if df[col].dtype == 'object':
-                    df[col] = df[col].astype(str)
-
-            st.write(df.dtypes)  # Inspect data types
+    for term, stocks in recommendations.items():
+        st.subheader(f"{term} Recommendations")
+        if stocks:
+            df = pd.DataFrame(stocks)
             st.dataframe(df)
         else:
             st.write("No recommendations available.")

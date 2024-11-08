@@ -5,10 +5,67 @@ import ta
 
 # Function to fetch stock indicators
 def fetch_indicators(stock, interval='1d'):
-    ticker = yf.Ticker(stock)
-    data = ticker.history(period="1y", interval=interval)
+    try:
+        ticker = yf.Ticker(stock)
+        data = ticker.history(period="1y", interval=interval)
 
-    if data.empty or len(data) < 2:
+        if data.empty or len(data) < 2:
+            return {key: None for key in [
+                'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
+                'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
+                'Close', 'Volume', 'SMA_50', 'SMA_200', 
+                'EMA_12', 'EMA_26', 'Average_Volume', 
+                'Average_Volume_10d', 'Pattern', 
+                'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
+            ]}
+
+        # Calculate indicators
+        data['RSI'] = ta.momentum.RSIIndicator(data['Close'], window=14).rsi()
+        macd = ta.trend.MACD(data['Close'])
+        data['MACD'] = macd.macd()
+        data['MACD_Signal'] = macd.macd_signal()
+        data['MACD_Hist'] = macd.macd_diff()
+        bb = ta.volatility.BollingerBands(data['Close'], window=20, window_dev=2)
+        data['Upper_BB'] = bb.bollinger_hband()
+        data['Lower_BB'] = bb.bollinger_lband()
+        data['Volatility'] = data['Close'].pct_change().rolling(window=21).std() * 100
+        data['SMA_50'] = data['Close'].rolling(window=50).mean()
+        data['SMA_200'] = data['Close'].rolling(window=200).mean()
+        data['EMA_12'] = ta.trend.EMAIndicator(data['Close'], window=12).ema_indicator()
+        data['EMA_26'] = ta.trend.EMAIndicator(data['Close'], window=26).ema_indicator()
+
+        average_volume = data['Volume'].mean()
+        average_volume_10d = data['Volume'].rolling(window=10).mean().iloc[-1] if len(data['Volume']) >= 10 else None
+        beta = ticker.info.get('beta', None)
+
+        last_close = data['Close'].iloc[-1]
+        pattern = detect_chart_pattern(data)
+
+        return {
+            'RSI': data['RSI'].iloc[-1],
+            'MACD': data['MACD'].iloc[-1],
+            'MACD_Signal': data['MACD_Signal'].iloc[-1],
+            'MACD_Hist': data['MACD_Hist'].iloc[-1],
+            'Upper_BB': data['Upper_BB'].iloc[-1],
+            'Lower_BB': data['Lower_BB'].iloc[-1],
+            'Volatility': data['Volatility'].iloc[-1],
+            'Beta': beta,
+            'Close': last_close,
+            'Volume': data['Volume'].iloc[-1],
+            'SMA_50': data['SMA_50'].iloc[-1],
+            'SMA_200': data['SMA_200'].iloc[-1],
+            'EMA_12': data['EMA_12'].iloc[-1],
+            'EMA_26': data['EMA_26'].iloc[-1],
+            'Average_Volume': average_volume,
+            'Average_Volume_10d': average_volume_10d,
+            'Pattern': pattern,
+            'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
+            'Bullish_Percentage': calculate_bullish_percentage(data),
+            'Bearish_Percentage': calculate_bearish_percentage(data)
+        }
+
+    except Exception as e:
+        st.error(f"Error fetching data for {stock}: {e}")
         return {key: None for key in [
             'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
             'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
@@ -18,54 +75,9 @@ def fetch_indicators(stock, interval='1d'):
             'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
         ]}
 
-    # Calculate indicators
-    data['RSI'] = ta.momentum.RSIIndicator(data['Close'], window=14).rsi()
-    macd = ta.trend.MACD(data['Close'])
-    data['MACD'] = macd.macd()
-    data['MACD_Signal'] = macd.macd_signal()
-    data['MACD_Hist'] = macd.macd_diff()
-    bb = ta.volatility.BollingerBands(data['Close'], window=20, window_dev=2)
-    data['Upper_BB'] = bb.bollinger_hband()
-    data['Lower_BB'] = bb.bollinger_lband()
-    data['Volatility'] = data['Close'].pct_change().rolling(window=21).std() * 100
-    data['SMA_50'] = data['Close'].rolling(window=50).mean()
-    data['SMA_200'] = data['Close'].rolling(window=200).mean()
-    data['EMA_12'] = ta.trend.EMAIndicator(data['Close'], window=12).ema_indicator()
-    data['EMA_26'] = ta.trend.EMAIndicator(data['Close'], window=26).ema_indicator()
-
-    average_volume = data['Volume'].mean()
-    average_volume_10d = data['Volume'].rolling(window=10).mean().iloc[-1] if len(data['Volume']) >= 10 else None
-    beta = ticker.info.get('beta', None)
-
-    last_close = data['Close'].iloc[-1]
-    pattern = detect_chart_pattern(data)
-
-    return {
-        'RSI': data['RSI'].iloc[-1],
-        'MACD': data['MACD'].iloc[-1],
-        'MACD_Signal': data['MACD_Signal'].iloc[-1],
-        'MACD_Hist': data['MACD_Hist'].iloc[-1],
-        'Upper_BB': data['Upper_BB'].iloc[-1],
-        'Lower_BB': data['Lower_BB'].iloc[-1],
-        'Volatility': data['Volatility'].iloc[-1],
-        'Beta': beta,
-        'Close': last_close,
-        'Volume': data['Volume'].iloc[-1],
-        'SMA_50': data['SMA_50'].iloc[-1],
-        'SMA_200': data['SMA_200'].iloc[-1],
-        'EMA_12': data['EMA_12'].iloc[-1],
-        'EMA_26': data['EMA_26'].iloc[-1],
-        'Average_Volume': average_volume,
-        'Average_Volume_10d': average_volume_10d,
-        'Pattern': pattern,
-        'Strength_Percentage': ((last_close - data['SMA_50'].iloc[-1]) / data['SMA_50'].iloc[-1] * 100) if data['SMA_50'].iloc[-1] is not None else 0,
-        'Bullish_Percentage': calculate_bullish_percentage(data),
-        'Bearish_Percentage': calculate_bearish_percentage(data)
-    }
-
 # Function to detect chart patterns
 def detect_chart_pattern(data):
-    if len(data) < 30:  # Need at least 30 points to identify patterns
+    if len(data) < 30:
         return "No Pattern"
 
     recent_prices = data['Close'].tail(30).values
@@ -315,69 +327,27 @@ def generate_recommendations(indicators_list):
 
     return recommendations
 
-# Main Streamlit application
-st.title('Stock Indicator Analysis')
+# Streamlit UI
+st.title("Stock Indicator Analysis")
 
-# Upload file
-uploaded_file = st.file_uploader("Upload a CSV or Excel file with stock symbols", type=["csv", "xlsx"])
+# User input for stock symbols
+input_stocks = st.text_area("Enter stock symbols (comma-separated):")
+stock_symbols = [symbol.strip() for symbol in input_stocks.split(",") if symbol.strip()]
 
-if uploaded_file is not None:
-    if uploaded_file.name.endswith('.csv'):
-        stock_df = pd.read_csv(uploaded_file)
-    else:
-        stock_df = pd.read_excel(uploaded_file)
+# Fetch indicators
+indicators_list = {}
+for stock in stock_symbols:
+    indicators = fetch_indicators(stock)
+    indicators_list[stock] = indicators
 
-    if stock_df.empty or 'Stock' not in stock_df.columns:
-        st.error("The uploaded file does not contain a valid 'Stock' column.")
-        st.stop()
-
-    stock_symbols = stock_df['Stock'].tolist()  # Assuming the column is named 'Stock'
-    
-    # Fetch indicators for all stocks
-    indicators_list = {}
-    for stock in stock_symbols:
-        indicators = fetch_indicators(stock)
-        indicators_list[stock] = indicators
-
-    # Generate recommendations based on the fetched indicators
+# Display results
+if indicators_list:
     recommendations = generate_recommendations(indicators_list)
 
-    if not isinstance(recommendations, dict) or not all(isinstance(val, list) for val in recommendations.values()):
-        st.error("No valid recommendations generated.")
-        st.stop()
+    st.subheader("Recommendations")
+    for term, recs in recommendations.items():
+        st.write(f"**{term} Recommendations:**")
+        for rec in recs:
+            st.write(f"- {rec['Stock']}: Current Price: {rec['Current Price']:.2f}, Score: {rec['Score']}, Target Price: {rec['Target Price']:.2f}, Stop Loss: {rec['Stop Loss']:.2f}")
 
-    # Display recommendations as tables
-    for term, stocks in recommendations.items():
-        st.subheader(f"{term} Recommendations")
-        if stocks:
-            df = pd.DataFrame(stocks)
-
-            # Round numerical columns to 2 decimals
-            numeric_cols = df.select_dtypes(include=['float64', 'int']).columns
-            df[numeric_cols] = df[numeric_cols].round(2)
-
-            # Check for columns with mixed types or None values and handle them
-            for col in df.columns:
-                if df[col].isnull().any():
-                    df[col] = df[col].fillna('N/A')  # Fill NaN with 'N/A'
-
-                # Optionally convert columns to string type to avoid type issues
-                df[col] = df[col].astype(str)
-
-            st.dataframe(df)
-
-            # Provide download option for the Excel file
-            excel_file = f"{term}_recommendations.xlsx"
-            with pd.ExcelWriter(excel_file) as writer:
-                df.to_excel(writer, index=False, sheet_name=term)
-
-            # Streamlit download button
-            with open(excel_file, 'rb') as f:
-                st.download_button(
-                    label="Download Excel file",
-                    data=f,
-                    file_name=excel_file,
-                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                )
-        else:
-            st.write("No recommendations available.")
+# Additional visualization and analytics can be added as needed.

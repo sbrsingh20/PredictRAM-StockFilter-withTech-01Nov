@@ -5,19 +5,18 @@ import ta
 
 # Function to fetch stock indicators
 def fetch_indicators(stock, interval='1d'):
-    try:
-        ticker = yf.Ticker(stock)
-        data = ticker.history(period="1y", interval=interval)
+    ticker = yf.Ticker(stock)
+    data = ticker.history(period="1y", interval=interval)
 
-        if data.empty or len(data) < 2:
-            return {key: None for key in [
-                'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
-                'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
-                'Close', 'Volume', 'SMA_50', 'SMA_200', 
-                'EMA_12', 'EMA_26', 'Average_Volume', 
-                'Average_Volume_10d', 'Pattern', 
-                'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
-            ]}
+    if data.empty or len(data) < 2:
+        return {key: None for key in [
+            'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
+            'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
+            'Close', 'Volume', 'SMA_50', 'SMA_200', 
+            'EMA_12', 'EMA_26', 'Average_Volume', 
+            'Average_Volume_10d', 'Pattern', 
+            'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
+        ]}
 
     # Calculate indicators
     data['RSI'] = ta.momentum.RSIIndicator(data['Close'], window=14).rsi()
@@ -63,19 +62,6 @@ def fetch_indicators(stock, interval='1d'):
         'Bullish_Percentage': calculate_bullish_percentage(data),
         'Bearish_Percentage': calculate_bearish_percentage(data)
     }
-
-  # Handle the beta information gracefully
-        beta = ticker.info.get('beta', None)
-except Exception as e:
-        st.error(f"Error fetching data for {stock}: {e}")
-        return {key: None for key in [
-            'RSI', 'MACD', 'MACD_Signal', 'MACD_Hist',
-            'Upper_BB', 'Lower_BB', 'Volatility', 'Beta',
-            'Close', 'Volume', 'SMA_50', 'SMA_200', 
-            'EMA_12', 'EMA_26', 'Average_Volume', 
-            'Average_Volume_10d', 'Pattern', 
-            'Strength_Percentage', 'Bullish_Percentage', 'Bearish_Percentage'
-        ]}
 
 # Function to detect chart patterns
 def detect_chart_pattern(data):
